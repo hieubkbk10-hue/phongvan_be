@@ -93,7 +93,8 @@ if (!function_exists('cdn_upload')) {
      * 
      * @return string
      */
-    function cdn_upload($file, $dir = '') {
+    function cdn_upload($file, $dir = '')
+    {
         $ext = $file->getClientOriginalExtension();
         $isImage = strpos($file->getMimeType(), 'image/') === 0;
         $prefix = $isImage ? 'img-' : 'file-';
@@ -137,7 +138,7 @@ if (!function_exists('generate_avatar')) {
             $initials = mb_strtoupper(mb_substr($parts[0], 0, 1));
         } else {
             $first = mb_substr($parts[$len - 2], 0, 1);
-            $last  = mb_substr($parts[$len - 1], 0, 1);
+            $last = mb_substr($parts[$len - 1], 0, 1);
             $initials = mb_strtoupper($first . $last);
         }
 
@@ -159,7 +160,7 @@ if (!function_exists('generate_avatar')) {
 
         $bgColor = sprintf('#%02X%02X%02X', $r, $g, $b);
 
-        $svg  = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $size . '" height="' . $size . '" viewBox="0 0 ' . $size . ' ' . $size . '">';
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' . $size . '" height="' . $size . '" viewBox="0 0 ' . $size . ' ' . $size . '">';
         $svg .= '<circle cx="' . $radius . '" cy="' . $radius . '" r="' . $radius . '" fill="' . $bgColor . '"/>';
         $svg .= '<text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="Arial, sans-serif" font-weight="600" font-size="' . $fontSize . 'px" fill="#ffffff">';
         $svg .= htmlspecialchars($initials, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

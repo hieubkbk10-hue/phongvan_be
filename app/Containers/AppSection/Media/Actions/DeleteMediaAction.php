@@ -2,8 +2,8 @@
 
 namespace App\Containers\AppSection\Media\Actions;
 
+use App\Containers\AppSection\Media\Events\MediaDeletedEvent;
 use App\Containers\AppSection\Media\Models\Media;
-use App\Containers\AppSection\Media\Tasks\DeleteMediaFileTask;
 use App\Containers\AppSection\Media\Tasks\DeleteMediaTask;
 use App\Containers\AppSection\Media\Tasks\FindMediaByIdTask;
 use App\Containers\AppSection\Media\UI\API\Requests\DeleteMediaRequest;
@@ -16,7 +16,7 @@ use Throwable;
 class DeleteMediaAction extends ParentAction
 {
     /**
-     * Xóa Media record và file vật lý tương ứng.
+     * Xóa Media record và phát sự kiện xóa file vật lý tương ứng sau khi DB commit.
      *
      * @param DeleteMediaRequest|int|Media $target
      * @return int
@@ -40,8 +40,8 @@ class DeleteMediaAction extends ParentAction
         return DB::transaction(function () use ($media, $path, $disk) {
             $result = app(DeleteMediaTask::class)->run($media->id);
 
-            // Xóa file vật lý tương ứng khỏi storage
-            app(DeleteMediaFileTask::class)->run($path, $disk);
+            // Bắn MediaDeletedEvent -> Listener chạy xóa file vật lý sau khi DB commit thành công
+            MediaDeletedEvent::dispatch($path, $disk);
 
             return $result;
         });

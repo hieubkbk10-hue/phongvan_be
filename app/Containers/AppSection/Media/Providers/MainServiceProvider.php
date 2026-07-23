@@ -13,7 +13,7 @@ class MainServiceProvider extends ParentMainServiceProvider
      * Container Service Providers.
      */
     public array $serviceProviders = [
-        // InternalServiceProviderExample::class,
+        EventServiceProvider::class,
     ];
 
     /**
