@@ -135,9 +135,9 @@ class CreateApi extends ConsoleCommand
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/UI/API/Routes/_' . Str::snake($models) . '.v' . $this->docversion . '.public', $contentResponse);
 
-        // create 4 API
         $this->generateApi('Create', 'Create' . $model);
         $this->generateApi('Delete', 'Delete' . $model);
+        $this->generateApi('Find', 'Find' . $model);
         $this->generateApi('GetAll', 'GetAll' . $models);
         $this->generateApi('Update', 'Update' . $model);
 
