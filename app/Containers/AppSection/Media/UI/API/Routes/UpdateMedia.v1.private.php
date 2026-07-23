@@ -27,4 +27,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::patch('media/{id}', [UpdateMediaController::class, 'updateMedia'])
     ->middleware(['auth:api']);
-

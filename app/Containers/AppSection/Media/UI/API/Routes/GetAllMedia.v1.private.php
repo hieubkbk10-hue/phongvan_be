@@ -27,4 +27,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('media', [GetAllMediaController::class, 'getAllMedia'])
     ->middleware(['auth:api']);
-

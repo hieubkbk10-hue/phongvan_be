@@ -27,4 +27,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('media', [CreateMediaController::class, 'createMedia'])
     ->middleware(['auth:api']);
-
