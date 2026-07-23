@@ -86,3 +86,12 @@
 - Audit trước, rồi mới fix. Xác định expected vs actual, phạm vi ảnh hưởng, điều kiện tái hiện và tiêu chí pass/fail.
 - Nếu có nhiều hướng hợp lý ảnh hưởng behavior/API/UX/risk, hỏi lại bằng lựa chọn rõ ràng.
 - Nếu chỉ có một hướng an toàn và đúng pattern repo, tự triển khai và nêu giả định ngắn gọn khi bàn giao.
+
+## 10. Quy chuẩn comment code
+
+- Comment lý do **"TẠI SAO" (Why)**, không comment hành động **"CÁI GÌ" (What)** khi tên hàm/biến đã tự giải thích.
+- Bắt buộc comment cho: logic nghiệp vụ ngầm, edge-case đặc biệt, hoặc hack/workaround lách lỗi thư viện (kèm link issue/lý do).
+- Ưu tiên dùng tiền tố chuẩn hóa từ `.factory`: `// QUYỀN:` (phân quyền), `// LOGIC:` (thuật toán/nghiệp vụ), `// UI:` (giao diện/kích thước động).
+- Viết PHPDoc/Docblock cho Action, Task, DTO/Props để hỗ trợ IDE Intellisense; duy trì block `@api` documentation trong các file route Apiato.
+- Tuyệt đối không commit code cũ bị comment (dead code); xóa hẳn vì Git đã lưu vết history.
+
