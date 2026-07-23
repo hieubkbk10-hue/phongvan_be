@@ -10,11 +10,13 @@ class Media extends ParentModel
     protected $table = 'media';
 
     protected $fillable = [
-        'name',
-        'file_path',
         'disk',
+        'path',
+        'filename',
         'mime_type',
         'size',
+        'sort_order',
+        'is_main',
         'mediable_type',
         'mediable_id',
     ];
@@ -24,6 +26,8 @@ class Media extends ParentModel
 
     protected $casts = [
         'size' => 'integer',
+        'sort_order' => 'integer',
+        'is_main' => 'boolean',
     ];
 
     /**
