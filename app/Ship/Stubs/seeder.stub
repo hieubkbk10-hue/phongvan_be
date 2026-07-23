@@ -1,0 +1,17 @@
+<?php
+
+namespace App\Containers\{{section-name}}\{{container-name}}\Data\Seeders;
+
+use App\Containers\AppSection\Authorization\Tasks\CreatePermissionsTask;
+use App\Ship\Parents\Seeders\Seeder as ParentSeeder;
+
+class {{class-name}} extends ParentSeeder
+{
+    public function run()
+    {
+        $list = [];
+        $list[] = ['manage-{{permission-name}}', '', 'Manage {{model}}', 'api'];
+
+        app(CreatePermissionsTask::class)->run($list, addRoleAdmin: true);
+    }
+}

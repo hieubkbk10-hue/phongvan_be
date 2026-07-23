@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @apiDefine {{model}}SuccessSingleResponse
+ * @apiSuccessExample {json} Success-Response:
+HTTP/1.1 200 OK
+{
+  "data": {
+    "object": "{{model}}",
+    "id": 1,
+    // ...
+  },
+  "meta": {
+    "include": [
+    ],
+    "custom": [
+    ]
+  }
+}
+ */
+

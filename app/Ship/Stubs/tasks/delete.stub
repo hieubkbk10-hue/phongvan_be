@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Containers\{{section-name}}\{{container-name}}\Tasks;
+
+use App\Containers\{{section-name}}\{{container-name}}\Data\Repositories\{{model}}Repository;
+use App\Ship\Exceptions\DeleteResourceFailedException;
+use App\Ship\Parents\Tasks\Task as ParentTask;
+use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+
+class {{class-name}} extends ParentTask
+{
+    public function __construct(
+        protected {{model}}Repository $repository
+    ) {
+    }
+
+    /**
+     * @throws DeleteResourceFailedException
+     */
+    public function run($id): int
+    {
+        try {
+            return $this->repository->delete($id);
+        } catch (Exception $e) {
+            throw new DeleteResourceFailedException($e->getMessage());
+        }
+    }
+}

@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Containers\{{section-name}}\{{container-name}}\Models;
+
+use App\Ship\Parents\Models\Model as ParentModel;
+
+class {{class-name}} extends ParentModel
+{
+    protected $fillable = [
+
+    ];
+
+    protected $hidden = [
+
+    ];
+
+    protected $casts = [
+
+    ];
+
+    protected $table = '{{table-name}}';
+
+    /**
+     * A resource key to be used in the serialized responses.
+     */
+    protected string $resourceKey = '{{class-name}}';
+
+    public static function getTableName()
+    {
+        return '{{table-name}}';
+    }
+}

@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Containers\{{section-name}}\{{container-name}}\UI\API\Controllers;
+
+use Apiato\Core\Exceptions\IncorrectIdException;
+use Apiato\Core\Exceptions\InvalidTransformerException;
+use App\Containers\{{section-name}}\{{container-name}}\Actions\{{action-name}};
+use App\Containers\{{section-name}}\{{container-name}}\UI\API\Requests\{{request-name}};
+use App\Containers\{{section-name}}\{{container-name}}\UI\API\Transformers\{{model}}Transformer;
+use App\Ship\Exceptions\CreateResourceFailedException;
+use App\Ship\Parents\Controllers\ApiController;
+use Illuminate\Http\JsonResponse;
+
+class {{class-name}} extends ApiController
+{
+    /**
+     * @param {{request-name}} $request
+     * @return JsonResponse
+     * @throws CreateResourceFailedException
+     * @throws InvalidTransformerException
+     * @throws IncorrectIdException
+     */
+    public function {{method-name}}({{request-name}} $request): JsonResponse
+    {
+        ${{entity}} = app({{action-name}}::class)->run($request)->refresh();
+
+        return $this->created($this->transform(${{entity}}, {{model}}Transformer::class));
+    }
+}

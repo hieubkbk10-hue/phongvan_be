@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Containers\{{section-name}}\{{container-name}}\UI\API\Transformers;
+
+use App\Containers\{{section-name}}\{{container-name}}\Models\{{model}};
+use App\Ship\Parents\Transformers\Transformer as ParentTransformer;
+
+class {{class-name}} extends ParentTransformer
+{
+    protected array $defaultIncludes = [
+
+    ];
+
+    protected array $availableIncludes = [
+
+    ];
+
+    public function transform({{model}} ${{variable}}): array
+    {
+        $response = [
+            'object' => ${{variable}}->getResourceKey(),
+            'id' => ${{variable}}->getHashedKey(),
+            
+        ];
+
+        return $this->ifAdmin([
+            'real_id' => ${{variable}}->id,
+            'created_at' => ${{variable}}->created_at,
+            'updated_at' => ${{variable}}->updated_at,
+        ], $response);
+    }
+}

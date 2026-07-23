@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * @apiGroup           {{container-name}}
+ * @apiName            {{doc-api-name}}
+ *
+ * @api                {GET} {{doc-endpoint-url}} {{endpoint-title}}
+ *
+ * @apiVersion         {{endpoint-version}}.0.0
+ * @apiPermission      Authenticated ['permissions' => '{{permission}}', 'roles' => '']
+ *
+ * @apiHeader          {String} accept=application/json
+ * @apiHeader          {String} authorization=Bearer
+ *
+ * @apiUse             GeneralSuccessMultipleResponse
+ */
+
+use App\Containers\{{section-name}}\{{container-name}}\UI\API\Controllers\{{controller-name}};
+use Illuminate\Support\Facades\Route;
+
+Route::get('{{endpoint-url}}', [{{controller-name}}::class, '{{method-name}}'])
+    ->middleware(['auth:api']);
+

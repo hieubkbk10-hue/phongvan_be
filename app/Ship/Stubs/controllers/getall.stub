@@ -1,0 +1,26 @@
+<?php
+
+namespace App\Containers\{{section-name}}\{{container-name}}\UI\API\Controllers;
+
+use Apiato\Core\Exceptions\CoreInternalErrorException;
+use Apiato\Core\Exceptions\InvalidTransformerException;
+use App\Containers\{{section-name}}\{{container-name}}\Actions\{{action-name}};
+use App\Containers\{{section-name}}\{{container-name}}\UI\API\Requests\{{request-name}};
+use App\Containers\{{section-name}}\{{container-name}}\UI\API\Transformers\{{model}}Transformer;
+use App\Ship\Parents\Controllers\ApiController;
+use Prettus\Repository\Exceptions\RepositoryException;
+
+class {{class-name}} extends ApiController
+{
+    /**
+     * @throws InvalidTransformerException
+     * @throws CoreInternalErrorException
+     * @throws RepositoryException
+     */
+    public function {{method-name}}({{request-name}} $request): array
+    {
+        ${{entity}} = app({{action-name}}::class)->run($request);
+
+        return $this->transform(${{entity}}, {{model}}Transformer::class);
+    }
+}
