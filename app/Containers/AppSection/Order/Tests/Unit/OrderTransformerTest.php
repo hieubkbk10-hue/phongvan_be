@@ -116,7 +116,7 @@ class OrderTransformerTest extends TestCase
         /** @var Order $newOrder2 */
         $newOrder2 = Order::factory()->create(['created_at' => now()]);
 
-        /** @var \Illuminate\Contracts\Pagination\LengthAwarePaginator $orders */
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $orders */
         $orders = app(GetAllOrdersTask::class)->run();
 
         $this->assertGreaterThanOrEqual(3, $orders->count());
