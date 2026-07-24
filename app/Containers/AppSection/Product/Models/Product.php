@@ -2,7 +2,9 @@
 
 namespace App\Containers\AppSection\Product\Models;
 
+use App\Containers\AppSection\Media\Models\Media;
 use App\Ship\Parents\Models\Model as ParentModel;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Product extends ParentModel
 {
@@ -30,5 +32,10 @@ class Product extends ParentModel
     public static function getTableName(): string
     {
         return 'products';
+    }
+
+    public function media(): MorphMany
+    {
+        return $this->morphMany(Media::class, 'mediable');
     }
 }
