@@ -70,7 +70,9 @@ class OrderTransformerTest extends TestCase
         /** @var OrderItem $orderItem */
         $orderItem = OrderItem::factory()->create([
             'product_name_snapshot' => 'Snapshot Product',
+            'product_price_snapshot' => '60.00',
             'unit_price' => '50.00',
+            'price_override_reason' => 'Discount',
             'quantity' => 2,
             'total_item_price' => '100.00',
         ]);
@@ -78,9 +80,12 @@ class OrderTransformerTest extends TestCase
         $response = (new OrderItemTransformer())->transform($orderItem);
 
         $this->assertSame('Snapshot Product', $response['product_name_snapshot']);
+        $this->assertSame('60.00', $response['product_price_snapshot']);
         $this->assertSame('50.00', $response['unit_price']);
+        $this->assertSame('Discount', $response['price_override_reason']);
         $this->assertSame(2, $response['quantity']);
         $this->assertSame('100.00', $response['total_item_price']);
+        $this->assertSame($orderItem->encode($orderItem->product_id), $response['product_id']);
     }
 
     public function testOrderQueriesEagerLoadRequestedIncludes(): void
@@ -90,7 +95,7 @@ class OrderTransformerTest extends TestCase
         /** @var Order $order */
         $order = Order::factory()->create(['customer_id' => $customer->id]);
         OrderItem::factory()->create(['order_id' => $order->id]);
-        request()->query->set('include', 'customer,items');
+        request()->query->set('include', 'customer,items,items.product');
 
         /** @var Order $listedOrder */
         $listedOrder = app(GetAllOrdersTask::class)->run()->first();
@@ -98,7 +103,25 @@ class OrderTransformerTest extends TestCase
 
         $this->assertTrue($listedOrder->relationLoaded('customer'));
         $this->assertTrue($listedOrder->relationLoaded('items'));
+        $this->assertTrue($listedOrder->items->first()->relationLoaded('product'));
         $this->assertTrue($foundOrder->relationLoaded('customer'));
         $this->assertTrue($foundOrder->relationLoaded('items'));
+        $this->assertTrue($foundOrder->items->first()->relationLoaded('product'));
+    }
+
+    public function testGetAllOrdersTaskAppliesStableSorting(): void
+    {
+        Order::factory()->create(['created_at' => now()->subDay()]);
+        Order::factory()->create(['created_at' => now()]);
+        /** @var Order $newOrder2 */
+        $newOrder2 = Order::factory()->create(['created_at' => now()]);
+
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $orders */
+        $orders = app(GetAllOrdersTask::class)->run();
+
+        $this->assertGreaterThanOrEqual(3, $orders->count());
+        /** @var Order $firstOrder */
+        $firstOrder = $orders->first();
+        $this->assertSame($newOrder2->id, $firstOrder->id);
     }
 }

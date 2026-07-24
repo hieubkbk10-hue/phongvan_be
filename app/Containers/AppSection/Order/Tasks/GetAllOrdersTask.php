@@ -33,10 +33,17 @@ class GetAllOrdersTask extends ParentTask
             $relations[] = 'items';
         }
 
+        if (\has_include('items.product')) {
+            $relations[] = 'items.product';
+        }
+
         if ($relations !== []) {
             $repository->with($relations);
         }
 
-        return $repository->paginate();
+        return $repository
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate();
     }
 }

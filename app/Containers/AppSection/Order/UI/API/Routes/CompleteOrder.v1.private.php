@@ -2,10 +2,10 @@
 
 /**
  * @apiGroup           Order
- * @apiName            FindOrderById
+ * @apiName            CompleteOrder
  *
- * @api                {GET} /v1/orders/:id Find Order By Id
- * @apiDescription     Find an Order by Hashed ID. Optionally include customer, items, and items.product relations.
+ * @api                {POST} /v1/orders/:id/complete Complete Order
+ * @apiDescription     Transition order status from Pending (1) to Completed (2). Order must have delivery_date and shipping_carrier specified. Completed orders cannot be modified or deleted.
  *
  * @apiVersion         1.0.0
  * @apiPermission      Authenticated ['permissions' => '', 'roles' => '']
@@ -14,7 +14,6 @@
  * @apiHeader          {String} authorization=Bearer
  *
  * @apiParam           {String} id Order Hashed ID
- * @apiQuery           {String} [include] Include relations: customer, items, items.product
  *
  * @apiSuccessExample  {json} Success-Response:
  * HTTP/1.1 200 OK
@@ -22,14 +21,13 @@
  *     "data": {
  *         "object": "Order",
  *         "id": "...",
- *         "code": "ORD-...",
- *         "status": 1
+ *         "status": 2
  *     }
  * }
  */
 
-use App\Containers\AppSection\Order\UI\API\Controllers\FindOrderByIdController;
+use App\Containers\AppSection\Order\UI\API\Controllers\CompleteOrderController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('orders/{id}', [FindOrderByIdController::class, 'findOrderById'])
+Route::post('orders/{id}/complete', [CompleteOrderController::class, 'completeOrder'])
     ->middleware(['auth:api']);
