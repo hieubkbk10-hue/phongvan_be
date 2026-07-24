@@ -17,10 +17,26 @@ class FindOrderByIdTask extends ParentTask
 
     /**
      * @throws NotFoundException
+     *
+     * @psalm-suppress UndefinedFunction
      */
     public function run($id): Order
     {
         try {
+            $relations = [];
+
+            if (\has_include('customer')) {
+                $relations[] = 'customer';
+            }
+
+            if (\has_include('items')) {
+                $relations[] = 'items';
+            }
+
+            if ($relations !== []) {
+                $this->repository->with($relations);
+            }
+
             return $this->repository->find($id);
         } catch (Exception) {
             throw new NotFoundException();

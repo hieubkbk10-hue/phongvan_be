@@ -17,9 +17,26 @@ class GetAllOrdersTask extends ParentTask
     /**
      * @throws CoreInternalErrorException
      * @throws RepositoryException
+     *
+     * @psalm-suppress UndefinedFunction
      */
     public function run(): mixed
     {
-        return $this->addRequestCriteria()->repository->paginate();
+        $repository = $this->addRequestCriteria()->repository;
+        $relations = [];
+
+        if (\has_include('customer')) {
+            $relations[] = 'customer';
+        }
+
+        if (\has_include('items')) {
+            $relations[] = 'items';
+        }
+
+        if ($relations !== []) {
+            $repository->with($relations);
+        }
+
+        return $repository->paginate();
     }
 }
