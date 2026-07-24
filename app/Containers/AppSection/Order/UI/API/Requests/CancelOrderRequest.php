@@ -5,7 +5,7 @@ namespace App\Containers\AppSection\Order\UI\API\Requests;
 use App\Ship\Parents\Requests\Request as ParentRequest;
 use Illuminate\Validation\Rule;
 
-class GetAllOrdersRequest extends ParentRequest
+class CancelOrderRequest extends ParentRequest
 {
     protected array $access = [
         'permissions' => '',
@@ -13,25 +13,26 @@ class GetAllOrdersRequest extends ParentRequest
     ];
 
     protected array $decode = [
+        'id',
     ];
 
     protected array $urlParameters = [
+        'id',
     ];
 
     public function rules(): array
     {
         return [
-            'page' => ['sometimes', 'integer', 'min:1'],
-            'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
-            'status' => ['sometimes', 'integer', Rule::in([1, 2, 5])],
-            'payment_method' => ['sometimes', 'integer', Rule::in([1, 2, 3, 4])],
+            'id' => ['required', Rule::exists('orders', 'id')],
+            'reason' => ['required_without:cancel_reason', 'nullable', 'string', 'max:255'],
+            'cancel_reason' => ['required_without:reason', 'nullable', 'string', 'max:255'],
         ];
     }
 
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $allowed = ['page', 'limit', 'status', 'payment_method', 'search', 'filter', 'orderBy', 'sortedBy', 'include'];
+            $allowed = ['id', 'reason', 'cancel_reason'];
             $inputKeys = array_keys($this->all());
             $extra = array_diff($inputKeys, $allowed);
             if (!empty($extra)) {
