@@ -2,10 +2,10 @@
 
 /**
  * @apiGroup           Customer
- * @apiName            FindCustomerById
+ * @apiName            RestoreCustomer
  *
- * @api                {GET} /v1/customers/:id Find Customer By Id
- * @apiDescription     Get a Customer by ID.
+ * @api                {POST} /v1/customers/:id/restore Restore Customer
+ * @apiDescription     Restore a soft-deleted Customer by ID.
  *
  * @apiVersion         1.0.0
  * @apiPermission      Authenticated ['permissions' => '', 'roles' => '']
@@ -29,8 +29,8 @@
  * }
  */
 
-use App\Containers\AppSection\Customer\UI\API\Controllers\FindCustomerByIdController;
+use App\Containers\AppSection\Customer\UI\API\Controllers\RestoreCustomerController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('customers/{id}', [FindCustomerByIdController::class, 'findCustomerById'])
+Route::post('customers/{id}/restore', [RestoreCustomerController::class, 'restoreCustomer'])
     ->middleware(['auth:api']);

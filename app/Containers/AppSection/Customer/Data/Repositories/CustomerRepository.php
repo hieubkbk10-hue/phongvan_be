@@ -12,7 +12,7 @@ class CustomerRepository extends ParentRepository
     protected $fieldSearchable = [
         'id' => '=',
         'name' => 'like',
-        'phone' => 'like',
+        'phone' => '=',
         'email' => 'like',
     ];
 }

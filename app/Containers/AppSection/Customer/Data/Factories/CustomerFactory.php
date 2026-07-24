@@ -13,7 +13,7 @@ class CustomerFactory extends ParentFactory
     {
         return [
             'name' => $this->faker->name(),
-            'phone' => $this->faker->unique()->phoneNumber(),
+            'phone' => '+84' . $this->faker->unique()->numerify('9########'),
             'address' => $this->faker->address(),
             'email' => $this->faker->safeEmail(),
         ];

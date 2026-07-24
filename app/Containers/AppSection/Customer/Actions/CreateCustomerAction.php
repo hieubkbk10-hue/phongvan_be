@@ -20,7 +20,10 @@ class CreateCustomerAction extends ParentAction
     public function run(CreateCustomerRequest $request): Customer
     {
         $data = $request->sanitizeInput([
-            // add your request data here
+            'name',
+            'phone',
+            'address',
+            'email',
         ]);
 
         return app(CreateCustomerTask::class)->run($data);

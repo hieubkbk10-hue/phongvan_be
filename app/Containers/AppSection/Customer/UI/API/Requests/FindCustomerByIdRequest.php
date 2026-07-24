@@ -2,7 +2,9 @@
 
 namespace App\Containers\AppSection\Customer\UI\API\Requests;
 
+use App\Containers\AppSection\Customer\Models\Customer;
 use App\Ship\Parents\Requests\Request as ParentRequest;
+use Illuminate\Validation\Rule;
 
 class FindCustomerByIdRequest extends ParentRequest
 {
@@ -35,7 +37,8 @@ class FindCustomerByIdRequest extends ParentRequest
     public function rules(): array
     {
         return [
-            // 'id' => 'required'
+            'id' => ['required', 'integer', Rule::exists(Customer::getTableName(), 'id')->whereNull('deleted_at')],
+            'include' => ['sometimes', 'nullable', 'string'],
         ];
     }
 
@@ -47,5 +50,17 @@ class FindCustomerByIdRequest extends ParentRequest
         return $this->check([
             'hasAccess',
         ]);
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $allowed = ['id', 'include'];
+            $inputKeys = array_keys($this->all());
+            $extra = array_diff($inputKeys, $allowed);
+            if (!empty($extra)) {
+                $validator->errors()->add('fields', 'Unallowed parameters present.');
+            }
+        });
     }
 }

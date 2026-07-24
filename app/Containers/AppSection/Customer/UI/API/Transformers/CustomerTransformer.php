@@ -20,15 +20,18 @@ class CustomerTransformer extends ParentTransformer
         $response = [
             'object' => $customer->getResourceKey(),
             'id' => $customer->getHashedKey(),
+            'name' => $customer->name,
+            'phone' => $customer->phone,
+            'address' => $customer->address,
+            'email' => $customer->email,
         ];
 
         return $this->ifAdmin([
             'real_id' => $customer->id,
             'created_at' => $customer->created_at,
             'updated_at' => $customer->updated_at,
-            'readable_created_at' => $customer->created_at->diffForHumans(),
-            'readable_updated_at' => $customer->updated_at->diffForHumans(),
-            // 'deleted_at' => $customer->deleted_at,
+            'readable_created_at' => $customer->created_at?->diffForHumans(),
+            'readable_updated_at' => $customer->updated_at?->diffForHumans(),
         ], $response);
     }
 }

@@ -22,7 +22,10 @@ class UpdateCustomerAction extends ParentAction
     public function run(UpdateCustomerRequest $request): Customer
     {
         $data = $request->sanitizeInput([
-            // add your request data here
+            'name',
+            'phone',
+            'address',
+            'email',
         ]);
 
         return app(UpdateCustomerTask::class)->run($data, $request->id);

@@ -2,7 +2,9 @@
 
 namespace App\Containers\AppSection\Customer\UI\API\Requests;
 
+use App\Containers\AppSection\Customer\Models\Customer;
 use App\Ship\Parents\Requests\Request as ParentRequest;
+use Illuminate\Validation\Rule;
 
 class DeleteCustomerRequest extends ParentRequest
 {
@@ -35,7 +37,7 @@ class DeleteCustomerRequest extends ParentRequest
     public function rules(): array
     {
         return [
-            // 'id' => 'required'
+            'id' => ['required', 'integer', Rule::exists(Customer::getTableName(), 'id')->whereNull('deleted_at')],
         ];
     }
 
@@ -47,5 +49,17 @@ class DeleteCustomerRequest extends ParentRequest
         return $this->check([
             'hasAccess',
         ]);
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $allowed = ['id'];
+            $inputKeys = array_keys($this->all());
+            $extra = array_diff($inputKeys, $allowed);
+            if (!empty($extra)) {
+                $validator->errors()->add('fields', 'Unallowed parameters present.');
+            }
+        });
     }
 }

@@ -5,7 +5,7 @@
  * @apiName            CreateCustomer
  *
  * @api                {POST} /v1/customers Create Customer
- * @apiDescription     Endpoint description here...
+ * @apiDescription     Create a new Customer.
  *
  * @apiVersion         1.0.0
  * @apiPermission      Authenticated ['permissions' => '', 'roles' => '']
@@ -13,12 +13,22 @@
  * @apiHeader          {String} accept=application/json
  * @apiHeader          {String} authorization=Bearer
  *
- * @apiParam           {String} parameters here...
+ * @apiBody            {String} name Max 150 chars
+ * @apiBody            {String} phone E.164 format (e.g. +84901234567)
+ * @apiBody            {String} address Max 255 chars
+ * @apiBody            {String} [email] Max 150 chars
  *
  * @apiSuccessExample  {json} Success-Response:
- * HTTP/1.1 200 OK
+ * HTTP/1.1 201 Created
  * {
- *     // Insert the response of the request here...
+ *     "data": {
+ *         "object": "Customer",
+ *         "id": "...",
+ *         "name": "...",
+ *         "phone": "+84901234567",
+ *         "address": "...",
+ *         "email": "..."
+ *     }
  * }
  */
 

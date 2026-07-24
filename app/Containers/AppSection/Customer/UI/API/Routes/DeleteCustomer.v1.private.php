@@ -5,7 +5,7 @@
  * @apiName            DeleteCustomer
  *
  * @api                {DELETE} /v1/customers/:id Delete Customer
- * @apiDescription     Endpoint description here...
+ * @apiDescription     Soft delete a Customer by ID.
  *
  * @apiVersion         1.0.0
  * @apiPermission      Authenticated ['permissions' => '', 'roles' => '']
@@ -13,13 +13,10 @@
  * @apiHeader          {String} accept=application/json
  * @apiHeader          {String} authorization=Bearer
  *
- * @apiParam           {String} parameters here...
+ * @apiParam           {String} id Customer Hash ID
  *
  * @apiSuccessExample  {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *     // Insert the response of the request here...
- * }
+ * HTTP/1.1 204 No Content
  */
 
 use App\Containers\AppSection\Customer\UI\API\Controllers\DeleteCustomerController;

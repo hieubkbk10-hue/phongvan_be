@@ -2,10 +2,11 @@
 
 namespace App\Containers\AppSection\Customer\UI\API\Requests;
 
+use App\Containers\AppSection\Customer\Models\Customer;
 use App\Ship\Parents\Requests\Request as ParentRequest;
 use Illuminate\Validation\Rule;
 
-class GetAllCustomersRequest extends ParentRequest
+class RestoreCustomerRequest extends ParentRequest
 {
     /**
      * Define which Roles and/or Permissions has access to this request.
@@ -19,6 +20,7 @@ class GetAllCustomersRequest extends ParentRequest
      * Id's that needs decoding before applying the validation rules.
      */
     protected array $decode = [
+        'id',
     ];
 
     /**
@@ -26,6 +28,7 @@ class GetAllCustomersRequest extends ParentRequest
      * validation rules on them and allows accessing them like request data.
      */
     protected array $urlParameters = [
+        'id',
     ];
 
     /**
@@ -34,14 +37,7 @@ class GetAllCustomersRequest extends ParentRequest
     public function rules(): array
     {
         return [
-            'page' => ['sometimes', 'integer', 'min:1'],
-            'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
-            'search' => ['sometimes', 'nullable', 'string'],
-            'searchFields' => ['sometimes', 'nullable', 'string'],
-            'orderBy' => ['sometimes', 'nullable', 'string'],
-            'sortedBy' => ['sometimes', 'nullable', 'string', Rule::in(['asc', 'desc', 'ASC', 'DESC'])],
-            'filter' => ['sometimes', 'nullable', 'string'],
-            'include' => ['sometimes', 'nullable', 'string'],
+            'id' => ['required', 'integer', Rule::exists(Customer::getTableName(), 'id')],
         ];
     }
 
@@ -58,7 +54,7 @@ class GetAllCustomersRequest extends ParentRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $allowed = ['page', 'limit', 'search', 'searchFields', 'orderBy', 'sortedBy', 'filter', 'include'];
+            $allowed = ['id'];
             $inputKeys = array_keys($this->all());
             $extra = array_diff($inputKeys, $allowed);
             if (!empty($extra)) {

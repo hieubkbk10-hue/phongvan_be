@@ -2,7 +2,9 @@
 
 namespace App\Containers\AppSection\Customer\UI\API\Requests;
 
+use App\Containers\AppSection\Customer\Models\Customer;
 use App\Ship\Parents\Requests\Request as ParentRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateCustomerRequest extends ParentRequest
 {
@@ -29,13 +31,26 @@ class UpdateCustomerRequest extends ParentRequest
         'id',
     ];
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('phone') && is_string($this->phone)) {
+            $this->merge([
+                'phone' => str_replace([' ', '-', '(', ')'], '', $this->phone),
+            ]);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      */
     public function rules(): array
     {
         return [
-            // 'id' => 'required'
+            'id' => ['required', 'integer', Rule::exists(Customer::getTableName(), 'id')->whereNull('deleted_at')],
+            'name' => ['sometimes', 'required', 'string', 'max:150'],
+            'phone' => ['sometimes', 'required', 'string', 'max:20', 'regex:/^\+[1-9][0-9]{7,14}$/', Rule::unique(Customer::getTableName(), 'phone')->ignore($this->id)],
+            'address' => ['sometimes', 'required', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:150'],
         ];
     }
 
@@ -47,5 +62,17 @@ class UpdateCustomerRequest extends ParentRequest
         return $this->check([
             'hasAccess',
         ]);
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $allowed = ['id', 'name', 'phone', 'address', 'email'];
+            $inputKeys = array_keys($this->all());
+            $extra = array_diff($inputKeys, $allowed);
+            if (!empty($extra)) {
+                $validator->errors()->add('fields', 'Unallowed fields present.');
+            }
+        });
     }
 }
