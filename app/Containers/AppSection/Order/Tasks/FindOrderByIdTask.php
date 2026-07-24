@@ -33,6 +33,10 @@ class FindOrderByIdTask extends ParentTask
                 $relations[] = 'items';
             }
 
+            if (\has_include('items.product')) {
+                $relations[] = 'items.product';
+            }
+
             if ($relations !== []) {
                 $this->repository->with($relations);
             }

@@ -47,8 +47,8 @@ class OrderTransformer extends ParentTransformer
             'real_id' => $order->id,
             'created_at' => $order->created_at,
             'updated_at' => $order->updated_at,
-            'readable_created_at' => $order->created_at->diffForHumans(),
-            'readable_updated_at' => $order->updated_at->diffForHumans(),
+            'readable_created_at' => $order->created_at?->diffForHumans(),
+            'readable_updated_at' => $order->updated_at?->diffForHumans(),
         ], $response);
     }
 
