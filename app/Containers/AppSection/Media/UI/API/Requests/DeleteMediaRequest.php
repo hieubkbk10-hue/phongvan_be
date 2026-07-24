@@ -2,49 +2,52 @@
 
 namespace App\Containers\AppSection\Media\UI\API\Requests;
 
+use App\Containers\AppSection\Media\Models\Media;
+use App\Containers\AppSection\Product\Models\Product;
 use App\Ship\Parents\Requests\Request as ParentRequest;
+use Illuminate\Validation\Rule;
 
 class DeleteMediaRequest extends ParentRequest
 {
-    /**
-     * Define which Roles and/or Permissions has access to this request.
-     */
     protected array $access = [
         'permissions' => '',
         'roles' => '',
     ];
 
-    /**
-     * Id's that needs decoding before applying the validation rules.
-     */
     protected array $decode = [
+        'product_id',
         'id',
     ];
 
-    /**
-     * Defining the URL parameters allows applying validation rules on them.
-     */
     protected array $urlParameters = [
+        'product_id',
         'id',
     ];
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
         return [
-            'id' => 'required',
+            'product_id' => ['required', 'integer', Rule::exists(Product::getTableName(), 'id')],
+            'id' => ['required', 'integer', Rule::exists(Media::getTableName(), 'id')],
         ];
     }
 
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return $this->check([
             'hasAccess',
         ]);
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $allowed = ['product_id', 'id'];
+            $inputKeys = array_keys($this->all());
+            $extra = array_diff($inputKeys, $allowed);
+            if (!empty($extra)) {
+                $validator->errors()->add('fields', 'Unallowed parameters present.');
+            }
+        });
     }
 }

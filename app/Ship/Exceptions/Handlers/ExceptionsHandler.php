@@ -86,7 +86,7 @@ class ExceptionsHandler extends CoreExceptionsHandler
                 'exception' => get_class($e),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => $e->getTrace(),
+                'trace' => $e->getTraceAsString(),
             ];
         } else {
             $response = [

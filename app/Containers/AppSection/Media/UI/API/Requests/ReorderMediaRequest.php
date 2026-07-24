@@ -2,60 +2,54 @@
 
 namespace App\Containers\AppSection\Media\UI\API\Requests;
 
+use App\Containers\AppSection\Media\Models\Media;
+use App\Containers\AppSection\Product\Models\Product;
 use App\Ship\Parents\Requests\Request as ParentRequest;
+use Illuminate\Validation\Rule;
 
 class ReorderMediaRequest extends ParentRequest
 {
-    /**
-     * Define which Roles and/or Permissions has access to this request.
-     */
     protected array $access = [
         'permissions' => '',
         'roles' => '',
     ];
 
-    /**
-     * Id's that needs decoding before applying the validation rules.
-     */
     protected array $decode = [
-        'medias.*.id',
+        'product_id',
+        'media.*.id',
     ];
 
-    /**
-     * Defining the URL parameters allows applying validation rules on them.
-     */
     protected array $urlParameters = [
+        'product_id',
     ];
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
         return [
-            'medias' => 'required|array|min:1|max:9',
-            'medias.*.id' => 'required',
-            'medias.*.sort_order' => 'required|integer|min:0',
+            'product_id' => ['required', 'integer', Rule::exists(Product::getTableName(), 'id')],
+            'media' => ['required', 'array', 'min:1', 'max:9'],
+            'media.*' => ['required', 'array:id,sort_order'],
+            'media.*.id' => ['required', 'integer', 'distinct', Rule::exists(Media::getTableName(), 'id')],
+            'media.*.sort_order' => ['required', 'integer', 'min:0', 'distinct'],
         ];
     }
 
-    /**
-     * Custom messages for validation errors.
-     */
-    public function messages(): array
-    {
-        return [
-            'medias.max' => 'Reorder chỉ nhận tối đa 9 Media ID.',
-        ];
-    }
-
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return $this->check([
             'hasAccess',
         ]);
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $allowed = ['product_id', 'media'];
+            $inputKeys = array_keys($this->all());
+            $extra = array_diff($inputKeys, $allowed);
+            if (!empty($extra)) {
+                $validator->errors()->add('fields', 'Unallowed parameters present.');
+            }
+        });
     }
 }

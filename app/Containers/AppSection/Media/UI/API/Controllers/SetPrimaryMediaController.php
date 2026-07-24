@@ -6,25 +6,20 @@ use Apiato\Core\Exceptions\InvalidTransformerException;
 use App\Containers\AppSection\Media\Actions\SetPrimaryMediaAction;
 use App\Containers\AppSection\Media\UI\API\Requests\SetPrimaryMediaRequest;
 use App\Containers\AppSection\Media\UI\API\Transformers\MediaTransformer;
-use App\Ship\Exceptions\NotFoundException;
-use App\Ship\Exceptions\UpdateResourceFailedException;
 use App\Ship\Parents\Controllers\ApiController;
-use Throwable;
+use Illuminate\Http\JsonResponse;
 
 class SetPrimaryMediaController extends ApiController
 {
     /**
      * @param SetPrimaryMediaRequest $request
-     * @return array
-     * @throws NotFoundException
-     * @throws UpdateResourceFailedException
+     * @return JsonResponse
      * @throws InvalidTransformerException
-     * @throws Throwable
      */
-    public function setPrimaryMedia(SetPrimaryMediaRequest $request): array
+    public function setPrimaryMedia(SetPrimaryMediaRequest $request): JsonResponse
     {
-        $media = app(SetPrimaryMediaAction::class)->run($request->id);
+        $media = app(SetPrimaryMediaAction::class)->run($request);
 
-        return $this->transform($media, MediaTransformer::class);
+        return $this->json($this->transform($media, MediaTransformer::class));
     }
 }

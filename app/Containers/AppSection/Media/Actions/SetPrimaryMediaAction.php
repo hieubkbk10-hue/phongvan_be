@@ -3,43 +3,50 @@
 namespace App\Containers\AppSection\Media\Actions;
 
 use App\Containers\AppSection\Media\Models\Media;
-use App\Containers\AppSection\Media\Tasks\FindMediaByIdTask;
-use App\Containers\AppSection\Media\Tasks\UpdateMediaTask;
+use App\Containers\AppSection\Media\UI\API\Requests\SetPrimaryMediaRequest;
+use App\Containers\AppSection\Product\Models\Product;
 use App\Ship\Exceptions\NotFoundException;
-use App\Ship\Exceptions\UpdateResourceFailedException;
+use App\Ship\Exceptions\ValidationFailedException;
 use App\Ship\Parents\Actions\Action as ParentAction;
 use Illuminate\Support\Facades\DB;
-use Throwable;
 
 class SetPrimaryMediaAction extends ParentAction
 {
     /**
-     * Đặt 1 Media làm ảnh chính (primary/main) cho đối tượng sở hữu.
-     *
-     * @param int|Media $mediaOrId
+     * @param SetPrimaryMediaRequest $request
      * @return Media
      * @throws NotFoundException
-     * @throws UpdateResourceFailedException
-     * @throws Throwable
+     * @throws ValidationFailedException
      */
-    public function run(int|Media $mediaOrId): Media
+    public function run(SetPrimaryMediaRequest $request): Media
     {
-        $media = $mediaOrId instanceof Media
-            ? $mediaOrId
-            : app(FindMediaByIdTask::class)->run($mediaOrId);
+        $productId = (int) $request->product_id;
+        $mediaId = (int) $request->id;
 
-        return DB::transaction(function () use ($media) {
-            // Reset tất cả các ảnh khác của cùng đối tượng sở hữu về is_main = false
-            if ($media->mediable_type && $media->mediable_id) {
-                Media::query()
-                    ->where('mediable_type', $media->mediable_type)
-                    ->where('mediable_id', $media->mediable_id)
-                    ->where('id', '!=', $media->id)
-                    ->update(['is_main' => false]);
-            }
+        // Check if media belongs to specified product
+        /** @var Media|null $media */
+        $media = Media::where('id', $mediaId)
+            ->where('mediable_type', Product::class)
+            ->where('mediable_id', $productId)
+            ->first();
 
-            // Đặt ảnh chỉ định thành is_main = true
-            return app(UpdateMediaTask::class)->run(['is_main' => true], $media->id);
+        if (!$media) {
+            throw (new ValidationFailedException('Media does not belong to the specified product.'))->withErrors(['id' => ['Media does not belong to the specified product.']]);
+        }
+
+        return DB::transaction(function () use ($productId, $media) {
+            // Lock Product row to avoid race condition
+            Product::where('id', $productId)->lockForUpdate()->first();
+
+            // Unset is_main on all media of this product
+            Media::where('mediable_type', Product::class)
+                ->where('mediable_id', $productId)
+                ->update(['is_main' => false]);
+
+            // Set is_main on target media
+            $media->update(['is_main' => true]);
+
+            return $media->fresh();
         });
     }
 }

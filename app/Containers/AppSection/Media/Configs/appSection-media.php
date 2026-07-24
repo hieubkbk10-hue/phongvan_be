@@ -10,8 +10,10 @@ return [
     |
     |
     */
-    "image" => [
-        'mimes' => ['jpg', 'jpeg', 'png','webp'],
+    'disk' => 'public',
+
+    'image' => [
+        'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'max_size_kb' => 5120,
     ],
 

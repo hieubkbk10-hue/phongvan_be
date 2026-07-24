@@ -5,35 +5,29 @@ namespace App\Containers\AppSection\Media\UI\API\Tests\Functional;
 use App\Containers\AppSection\Media\Models\Media;
 use App\Containers\AppSection\Media\UI\API\Tests\ApiTestCase;
 use App\Containers\AppSection\Product\Models\Product;
-use Illuminate\Support\Facades\Storage;
 
 /**
- * Class DeleteMediaTest.
+ * Class SetPrimaryMediaTest.
  *
  * @group media
  * @group api
  */
-class DeleteMediaTest extends ApiTestCase
+class SetPrimaryMediaTest extends ApiTestCase
 {
     protected array $access = [
         'permissions' => '',
         'roles' => '',
     ];
 
-    public function testDeletePrimaryPhotoPromotesNextPhotoWithSmallestSortOrderAndId(): void
+    public function testSetPrimaryMediaUpdatesOldPrimary(): void
     {
-        Storage::fake('public');
-
         /** @var Product $product */
         $product = Product::factory()->create();
-
-        $path1 = 'products/photo1.jpg';
-        Storage::disk('public')->put($path1, 'content1');
 
         /** @var Media $media1 */
         $media1 = Media::create([
             'disk' => 'public',
-            'path' => $path1,
+            'path' => 'products/photo1.jpg',
             'filename' => 'photo1.jpg',
             'mime_type' => 'image/jpeg',
             'size' => 100,
@@ -50,47 +44,33 @@ class DeleteMediaTest extends ApiTestCase
             'filename' => 'photo2.jpg',
             'mime_type' => 'image/jpeg',
             'size' => 100,
-            'sort_order' => 5,
-            'is_main' => false,
-            'mediable_type' => Product::class,
-            'mediable_id' => $product->id,
-        ]);
-
-        /** @var Media $media3 */
-        $media3 = Media::create([
-            'disk' => 'public',
-            'path' => 'products/photo3.jpg',
-            'filename' => 'photo3.jpg',
-            'mime_type' => 'image/jpeg',
-            'size' => 100,
             'sort_order' => 2,
             'is_main' => false,
             'mediable_type' => Product::class,
             'mediable_id' => $product->id,
         ]);
 
-        $url = "delete@v1/products/{$product->getHashedKey()}/media/{$media1->getHashedKey()}";
+        $url = "patch@v1/products/{$product->getHashedKey()}/media/{$media2->getHashedKey()}/primary";
 
         $response = $this->endpoint($url)->makeCall();
 
-        $response->assertStatus(204);
+        $response->assertStatus(200);
+        $response->assertJsonPath('data.is_primary', true);
 
-        // Media 1 deleted from DB and storage
-        $this->assertDatabaseMissing('media', ['id' => $media1->id]);
-        $this->assertFalse(Storage::disk('public')->exists($path1));
-
-        // Media 3 has sort_order = 2 (smaller than media 2 sort_order = 5), so media 3 becomes new primary
+        // Media 1 should no longer be primary
         $this->assertDatabaseHas('media', [
-            'id' => $media3->id,
-            'is_main' => true,
+            'id' => $media1->id,
+            'is_main' => false,
         ]);
+
+        // Media 2 should now be primary
         $this->assertDatabaseHas('media', [
             'id' => $media2->id,
-            'is_main' => false,
+            'is_main' => true,
         ]);
     }
 
-    public function testDeleteMediaOfOtherProductFails(): void
+    public function testSetPrimaryMediaOfOtherProductFails(): void
     {
         /** @var Product $product1 */
         $product1 = Product::factory()->create();
@@ -110,7 +90,8 @@ class DeleteMediaTest extends ApiTestCase
             'mediable_id' => $product2->id,
         ]);
 
-        $url = "delete@v1/products/{$product1->getHashedKey()}/media/{$mediaOfProduct2->getHashedKey()}";
+        // Attempt to set primary for product1 using product2's media ID
+        $url = "patch@v1/products/{$product1->getHashedKey()}/media/{$mediaOfProduct2->getHashedKey()}/primary";
 
         $response = $this->endpoint($url)->makeCall();
 

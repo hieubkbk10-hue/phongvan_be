@@ -3,67 +3,89 @@
 namespace App\Containers\AppSection\Media\Actions;
 
 use App\Containers\AppSection\Media\Models\Media;
-use App\Containers\AppSection\Media\Tasks\CreateMediaTask;
-use App\Containers\AppSection\Media\Tasks\DeleteMediaFileTask;
+use App\Containers\AppSection\Media\UI\API\Requests\UploadMediaRequest;
+use App\Containers\AppSection\Product\Models\Product;
 use App\Ship\Exceptions\CreateResourceFailedException;
+use App\Ship\Exceptions\ValidationFailedException;
 use App\Ship\Parents\Actions\Action as ParentAction;
-use Illuminate\Http\UploadedFile;
+use Exception;
 use Illuminate\Support\Facades\DB;
-use Throwable;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class UploadMediaAction extends ParentAction
 {
     /**
-     * Upload file vật lý và tạo Media record trong Database.
-     *
-     * @param UploadedFile $file
-     * @param array $data Thông tin bổ sung (disk, sort_order, is_main, mediable_type, mediable_id)
+     * @param UploadMediaRequest $request
      * @return Media
      * @throws CreateResourceFailedException
-     * @throws Throwable
+     * @throws ValidationFailedException
      */
-    public function run(UploadedFile $file, array $data = []): Media
+    public function run(UploadMediaRequest $request): Media
     {
-        $disk = $data['disk'] ?? 'public';
-        $folder = 'media';
+        $file = $request->file('file');
+        $productId = (int) $request->product_id;
+        $disk = (string) config('appSection-media.disk', 'public');
+        $folder = 'products';
 
-        // 1. Upload file vật lý lên storage disk
-        $path = $file->store($folder, $disk);
+        // 1. Upload file bytes to Storage BEFORE DB transaction using storeAs to avoid finfo issues
+        $extension = $file->getClientOriginalExtension() ?: 'jpg';
+        $filename = Str::random(40) . '.' . $extension;
+        $path = $file->storeAs($folder, $filename, $disk);
 
         try {
-            // 2. Ghi database trong transaction
-            return DB::transaction(function () use ($file, $data, $path, $disk) {
-                $isMain = (bool) ($data['is_main'] ?? false);
-                $mediableType = $data['mediable_type'] ?? null;
-                $mediableId = $data['mediable_id'] ?? null;
+            // 2. Short DB Transaction with lock
+            return DB::transaction(function () use ($request, $file, $productId, $disk, $path) {
+                // Lock Product row to check current photo count
+                $product = Product::where('id', $productId)->lockForUpdate()->first();
+                if (!$product) {
+                    throw (new ValidationFailedException('Product not found.'))->withErrors(['product_id' => ['Product not found.']]);
+                }
 
-                // Nếu đặt làm ảnh chính, reset các ảnh chính cũ của cùng đối tượng
-                if ($isMain && $mediableType && $mediableId) {
-                    Media::query()
-                        ->where('mediable_type', $mediableType)
-                        ->where('mediable_id', $mediableId)
+                $existingCount = Media::where('mediable_type', Product::class)
+                    ->where('mediable_id', $productId)
+                    ->count();
+
+                if ($existingCount >= 9) {
+                    throw (new ValidationFailedException('Upload Product không được vượt quá 9 ảnh.'))->withErrors(['file' => ['Upload Product không được vượt quá 9 ảnh.']]);
+                }
+
+                $isMain = ($existingCount === 0) ? true : (bool) ($request->is_main ?? false);
+
+                if ($isMain) {
+                    Media::where('mediable_type', Product::class)
+                        ->where('mediable_id', $productId)
                         ->update(['is_main' => false]);
                 }
 
-                $mediaData = [
+                $sortOrder = $request->has('sort_order') ? (int) $request->sort_order : $existingCount;
+
+                return Media::create([
                     'disk' => $disk,
                     'path' => $path,
                     'filename' => $file->getClientOriginalName(),
-                    'mime_type' => $file->getClientMimeType(),
+                    'mime_type' => $file->getClientMimeType() ?: 'image/jpeg',
                     'size' => $file->getSize(),
-                    'sort_order' => $data['sort_order'] ?? 0,
+                    'sort_order' => $sortOrder,
                     'is_main' => $isMain,
-                    'mediable_type' => $mediableType,
-                    'mediable_id' => $mediableId,
-                ];
-
-                return app(CreateMediaTask::class)->run($mediaData);
+                    'mediable_type' => Product::class,
+                    'mediable_id' => $productId,
+                ]);
             });
-        } catch (Throwable $e) {
-            // 3. Nếu DB lỗi sau upload, xóa file vừa upload để tránh rác storage
-            app(DeleteMediaFileTask::class)->run($path, $disk);
+        } catch (ValidationFailedException $e) {
+            // Remove uploaded file on validation error
+            if (Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+            }
 
-            throw new CreateResourceFailedException();
+            throw $e;
+        } catch (Exception $e) {
+            // Remove uploaded file on general error
+            if (Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+            }
+
+            throw new CreateResourceFailedException($e->getMessage());
         }
     }
 }

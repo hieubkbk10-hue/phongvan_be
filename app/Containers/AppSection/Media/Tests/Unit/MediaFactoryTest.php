@@ -15,8 +15,9 @@ class MediaFactoryTest extends TestCase
 {
     public function testCreateMedia(): void
     {
-        $media = Media::factory()->make();
+        $media = Media::factory()->create();
 
         $this->assertInstanceOf(Media::class, $media);
+        $this->assertModelExists($media);
     }
 }
