@@ -14,7 +14,7 @@ return new class extends Migration {
         Schema::create(Customer::getTableName(), function (Blueprint $table) {
             $table->id();
             $table->string('name', 150);
-            $table->string('phone', 20)->unique('customers_phone_unique');
+            $table->string('phone', 20)->unique();
             $table->string('address', 255);
             $table->string('email', 150)->nullable();
             $table->timestamps();
