@@ -17,10 +17,12 @@ class ProductMediaRelationTest extends TestCase
 {
     public function testProductHasMorphManyMediaRelation(): void
     {
+        /** @var Product $product */
         $product = Product::factory()->create();
 
         $this->assertInstanceOf(MorphMany::class, $product->media());
 
+        /** @var Media $media */
         $media = Media::create([
             'disk' => 'public',
             'path' => 'products/sample.jpg',
@@ -34,6 +36,8 @@ class ProductMediaRelationTest extends TestCase
         ]);
 
         $this->assertTrue($product->media->contains($media));
-        $this->assertEquals($product->id, $media->mediable->id);
+        /** @var Product $mediable */
+        $mediable = $media->mediable;
+        $this->assertEquals($product->id, $mediable->id);
     }
 }

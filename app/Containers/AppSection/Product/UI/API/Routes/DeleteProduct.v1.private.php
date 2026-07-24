@@ -5,7 +5,7 @@
  * @apiName            DeleteProduct
  *
  * @api                {DELETE} /v1/products/:id Delete Product
- * @apiDescription     Endpoint description here...
+ * @apiDescription     Hard delete a Product by ID.
  *
  * @apiVersion         1.0.0
  * @apiPermission      Authenticated ['permissions' => '', 'roles' => '']
@@ -13,13 +13,10 @@
  * @apiHeader          {String} accept=application/json
  * @apiHeader          {String} authorization=Bearer
  *
- * @apiParam           {String} parameters here...
+ * @apiParam           {String} id Product Hash ID
  *
  * @apiSuccessExample  {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *     // Insert the response of the request here...
- * }
+ * HTTP/1.1 204 No Content
  */
 
 use App\Containers\AppSection\Product\UI\API\Controllers\DeleteProductController;

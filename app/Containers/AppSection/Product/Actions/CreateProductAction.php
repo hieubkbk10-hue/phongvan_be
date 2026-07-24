@@ -20,8 +20,14 @@ class CreateProductAction extends ParentAction
     public function run(CreateProductRequest $request): Product
     {
         $data = $request->sanitizeInput([
-            // add your request data here
+            'name',
+            'price',
+            'status',
         ]);
+
+        if (!isset($data['status'])) {
+            $data['status'] = Product::STATUS_ACTIVE;
+        }
 
         return app(CreateProductTask::class)->run($data);
     }

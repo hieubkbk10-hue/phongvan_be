@@ -20,6 +20,10 @@ class GetAllProductsTask extends ParentTask
      */
     public function run(): mixed
     {
-        return $this->addRequestCriteria()->repository->paginate();
+        return $this->addRequestCriteria()
+            ->repository
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate();
     }
 }

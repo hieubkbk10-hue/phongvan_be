@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Product extends ParentModel
 {
+    public const STATUS_INACTIVE = 0;
+    public const STATUS_ACTIVE = 1;
+
     protected $table = 'products';
 
     protected $fillable = [
