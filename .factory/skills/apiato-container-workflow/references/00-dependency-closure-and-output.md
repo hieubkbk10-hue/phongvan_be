@@ -104,6 +104,15 @@ Workflow Markdown phải có:
 12. Definition of Done theo invariant.
 13. Không chèn code triển khai khi user chỉ xin quy trình.
 
+Khi `mysql-optimization` được kích hoạt, artifact phải thêm:
+
+- data type và nullability decisions;
+- index strategy, thứ tự composite index và query được index phục vụ;
+- query shape, selected columns và pagination strategy; nếu dùng keyset/cursor phải chốt stable ordering, unique tie-breaker, cursor predicate và supporting index;
+- transaction scope, lock order, contention/deadlock/retry risk;
+- `EXPLAIN`/query-plan validation cùng expected access type/index;
+- rollback migration/index và performance assertion sau rollback.
+
 ## 7. Artifact contract
 
 Workflow topo không trả toàn bộ trong chat. Lưu tại:

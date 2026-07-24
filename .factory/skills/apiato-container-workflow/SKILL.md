@@ -11,6 +11,8 @@ Tạo một workflow tổng đầy đủ, sau đó lọc thành quy trình ngắ
 
 **REQUIRED BACKGROUND:** Dùng `apiato`, `laravel-duong` và `laravel-apiato-qa`.
 
+**CONDITIONAL REQUIRED SUB-SKILL:** Dùng `mysql-optimization` trước khi chốt plan nếu scope có Migration/schema/index, relation, Repository/query, search/filter/sort, pagination, transaction, locking/concurrency hoặc bulk data. Không gọi skill này cho workflow chỉ có Mail/Notification/config không đụng data access.
+
 ## Hard rules
 
 1. Đọc `AGENTS.md`, standard liên quan và code hiện tại trước khi lập quy trình.
@@ -28,6 +30,7 @@ Tạo một workflow tổng đầy đủ, sau đó lọc thành quy trình ngắ
 13. Workflow phải có Mermaid flow diagram cho dependency graph và hai nhánh kết thúc: complete/abort.
 14. Git mặc định local-only: bước 0 tạo `feature/<slug>`, mỗi implementation task có file changes tạo đúng một commit, final gate merge local vào `master`, rồi xóa feature branch. Không push.
 15. Abort phải rollback theo thứ tự topo ngược. Không force-delete nhánh chưa merge nếu chưa có xác nhận rõ.
+16. Khi trigger MySQL xuất hiện, workflow phải ghi index strategy, query shape/pagination, transaction/lock risk, `EXPLAIN` validation và schema/index rollback.
 
 ## Workflow
 
@@ -60,6 +63,8 @@ Nếu dependency chưa tồn tại, đưa phase tạo dependency vào trước. 
 ### 3. Activate capabilities
 
 Đọc `references/01-capability-matrix.md`. Chỉ bật module có trigger, nhưng giữ nguyên prerequisite và thứ tự của module.
+
+Nếu bất kỳ capability MySQL nào được kích hoạt, gọi `mysql-optimization` trước khi chốt schema/query/transaction task và đưa kết quả audit vào artifact.
 
 ### 4. Topological ordering
 
@@ -191,3 +196,4 @@ Trước khi trả workflow, kiểm tra:
 - Chỉ ghi “revert commit” mà không rollback migration/data/runtime.
 - Tạo feature branch nhưng không có final merge/delete hoặc abort path.
 - Xóa nhánh chưa merge bằng force mà không xác nhận.
+- Có schema/query/locking trigger nhưng không dùng `mysql-optimization` hoặc chỉ ghi index chung chung.

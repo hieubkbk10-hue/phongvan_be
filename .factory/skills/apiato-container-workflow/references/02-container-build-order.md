@@ -95,6 +95,8 @@ Sau generator:
 
 ## Phase 5: Migration
 
+Trước khi chốt phase này, dùng `mysql-optimization` nếu có schema/index/query trigger.
+
 1. Import Model source-of-truth.
 2. `Schema::create(Model::getTableName())`.
 3. Primary key.
@@ -145,6 +147,8 @@ Chỉ chạy khi cả hai đầu dependency đã tồn tại.
 
 ## Phase 8: Repository và query contract
 
+Áp dụng kết quả `mysql-optimization`: query shape, selected columns, index phục vụ query và quyết định offset/deferred join/keyset. Nếu dùng keyset, chốt stable ordering, unique tie-breaker, cursor predicate và supporting composite index.
+
 1. Model binding.
 2. `$fieldSearchable` allowlist.
 3. Criteria quyền/backend không cho client override.
@@ -152,6 +156,7 @@ Chỉ chạy khi cả hai đầu dependency đã tồn tại.
 5. List dùng pagination/limit cap.
 6. Eager load, `withCount`, `withExists`.
 7. Không query/filter collection trong Transformer.
+8. Với query đáng kể, ghi `EXPLAIN` expectation và validation command.
 
 ## Phase 9: Tasks
 
@@ -170,6 +175,8 @@ Chỉ chạy khi cả hai đầu dependency đã tồn tại.
 7. Không để Task gọi Action.
 
 ## Phase 10: Action/SubAction và transaction
+
+Nếu có transaction/locking/concurrency, dùng `mysql-optimization` để chốt lock scope/order, contention, deadlock và retry policy.
 
 1. Action nhận Request.
 2. `sanitizeInput()` whitelist và server-owned fields.

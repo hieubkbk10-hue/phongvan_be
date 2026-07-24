@@ -11,6 +11,7 @@ Mục `(optional)` không có nghĩa được bỏ tùy ý. Khi trigger đúng, 
 | Accessor/mutator | Giá trị lưu và domain/API khác nhau | Cast trước → accessor/mutator chỉ normalize invariant → không query/side effect → test persist/serialize |
 | Domain getter/helper | Có derived value hoặc config lookup | Đặt tên theo nghiệp vụ → giữ pure nếu có thể → không query ẩn trong collection → unit test |
 | Static model method | Có helper static dùng Eloquent inherited method | Dùng `static::` khi cần late static binding → hard-code class chỉ khi cố ý |
+| MySQL optimization review | Có Migration/schema/index, relation, Repository/query, search/filter/sort, pagination, transaction, locking/concurrency hoặc bulk data | Gọi `mysql-optimization` → chốt data types/nullability → index strategy/leftmost prefix → query shape → offset/deferred-join/keyset decision → keyset stable order/tie-breaker/cursor predicate/index nếu dùng → lock/deadlock risk → EXPLAIN validation → schema/index rollback |
 | Migration | Thêm bảng/cột | Chốt schema/delete/snapshot → import Model → `getTableName()` → columns → relation columns → FK → delete constraint → indexes/unique → up/down/up |
 | Expand-Migrate-Contract | Đổi schema/data contract đang chạy production | Expand compatible → backfill/migrate data → deploy readers/writers mới → contract cũ sau |
 | Relation | Có owner/parent/child/membership | Cả hai Model/Migration tồn tại → relation methods → inverse relation → eager-load/query tests |
@@ -65,4 +66,5 @@ scheduled work              -> Scheduler + Worker + overlap prevention
 list endpoint               -> Criteria + Pagination + Index + N+1 audit
 private resource            -> Domain permission + Hash ID + scope criteria
 route contract changed      -> Functional tests + apidoc
+schema/query/locking present -> mysql-optimization + index/query/lock/EXPLAIN/rollback contract
 ```

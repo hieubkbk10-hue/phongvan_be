@@ -11,6 +11,7 @@ Bạn đang làm trong repo:
 Stack và quy chuẩn:
 - Laravel 9, Apiato/Porto; xác nhận phiên bản thực tế từ composer.lock trước khi dùng generator/API.
 - Đọc AGENTS.md và các standard/skill liên quan trước khi sửa.
+- Nếu bước có schema/index/query/pagination/transaction/locking/bulk data, bắt buộc dùng `mysql-optimization`.
 - Giữ flow Route -> Request -> Controller -> Action -> Task -> Repository/Model -> Transformer.
 - Không đọc/in .env hoặc secret.
 - Không đụng thay đổi không liên quan.
@@ -48,6 +49,7 @@ Không làm:
 
 Validation:
 - <scoped test/lint/command>
+- MySQL-triggered task: <EXPLAIN/EXPLAIN ANALYZE hoặc query-plan assertion phù hợp môi trường>.
 - Nếu fail do code, sửa và chạy lại.
 - Nếu fail do môi trường, báo command, exit code và lỗi chính.
 
@@ -92,6 +94,7 @@ Output:
 13. Prompt migration phải có exact rollback path, command và schema/data assertion.
 14. Prompt data migration phải phân biệt reversible, backup-required và irreversible.
 15. Prompt N phải có rollback độc lập; workflow tổng rollback theo dependency edges đảo chiều, không đảo số task máy móc.
+16. Prompt có MySQL trigger phải ghi data types/nullability, composite-index column order, query shape, offset/deferred-join/keyset decision, keyset stable order/unique tie-breaker/cursor predicate/supporting index nếu dùng, lock order/deadlock risk, EXPLAIN expectation và index rollback.
 
 ## Template bước 0 Git preflight
 

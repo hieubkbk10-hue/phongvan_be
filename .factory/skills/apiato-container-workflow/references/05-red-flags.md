@@ -20,6 +20,8 @@
 - Chỉ ghi “revert commit” mà không rollback schema/data/storage/runtime.
 - Có forward topo nhưng không có reverse-topological abort path.
 - Merge/xóa branch chạy khi validators fail hoặc working tree bẩn.
+- Có schema/query/locking trigger nhưng không gọi `mysql-optimization`.
+- Composite index không gắn với query shape/leftmost prefix hoặc không có `EXPLAIN` evidence.
 
 ## Rationalization và correction
 
@@ -43,6 +45,8 @@
 | “Rollback chỉ cần revert commit.” | Revert code không tự rollback migration, data, file, queue hoặc runtime. |
 | “Xóa feature branch local luôn an toàn.” | Branch chưa merge có thể mất commit; force-delete cần xác nhận abort rõ ràng. |
 | “Merge xong thì push luôn cho tiện.” | Workflow mặc định local-only; không push nếu user không yêu cầu riêng. |
+| “Migration đơn giản nên không cần MySQL review.” | Có schema/index/query/locking trigger là phải dùng `mysql-optimization`; độ ngắn của migration không loại bỏ rủi ro index/data type. |
+| “Có index là đủ, không cần EXPLAIN.” | Index không chứng minh optimizer sẽ dùng; task query đáng kể phải có query-plan expectation và validation. |
 
 ## Baseline failures observed
 
