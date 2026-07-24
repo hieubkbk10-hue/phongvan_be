@@ -14,7 +14,9 @@ class OrderItem extends ParentModel
         'order_id',
         'product_id',
         'product_name_snapshot',
+        'product_price_snapshot',
         'unit_price',
+        'price_override_reason',
         'quantity',
         'total_item_price',
     ];
@@ -23,6 +25,9 @@ class OrderItem extends ParentModel
     ];
 
     protected $casts = [
+        'order_id' => 'integer',
+        'product_id' => 'integer',
+        'product_price_snapshot' => 'decimal:2',
         'unit_price' => 'decimal:2',
         'quantity' => 'integer',
         'total_item_price' => 'decimal:2',

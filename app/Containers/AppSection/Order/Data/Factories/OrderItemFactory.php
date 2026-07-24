@@ -17,7 +17,9 @@ class OrderItemFactory extends ParentFactory
             'order_id' => Order::factory(),
             'product_id' => Product::factory(),
             'product_name_snapshot' => $this->faker->words(3, true),
+            'product_price_snapshot' => 50.00,
             'unit_price' => 50.00,
+            'price_override_reason' => null,
             'quantity' => 2,
             'total_item_price' => 100.00,
         ];

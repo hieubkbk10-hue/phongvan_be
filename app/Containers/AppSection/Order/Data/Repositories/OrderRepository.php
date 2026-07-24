@@ -2,6 +2,7 @@
 
 namespace App\Containers\AppSection\Order\Data\Repositories;
 
+use App\Containers\AppSection\Order\Models\Order;
 use App\Ship\Parents\Repositories\Repository as ParentRepository;
 
 class OrderRepository extends ParentRepository
@@ -17,4 +18,9 @@ class OrderRepository extends ParentRepository
         'status' => '=',
         'payment_method' => '=',
     ];
+
+    public function model(): string
+    {
+        return Order::class;
+    }
 }

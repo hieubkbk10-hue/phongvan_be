@@ -23,6 +23,7 @@ class CancelOrderTest extends TestCase
 
     public function testDeleteTaskCancelsOrderWithoutDeletingIt(): void
     {
+        /** @var Order $order */
         $order = Order::query()->create([
             'code' => 'ORD-CANCEL-TEST',
             'customer_name_snapshot' => 'Test Customer',
@@ -42,8 +43,11 @@ class CancelOrderTest extends TestCase
 
     public function testOrderFactoryCreatesValidOrderWithRelations(): void
     {
+        /** @var Customer $customer */
         $customer = Customer::factory()->create();
+        /** @var Order $order */
         $order = Order::factory()->create(['customer_id' => $customer->id]);
+        /** @var OrderItem $orderItem */
         $orderItem = OrderItem::factory()->create(['order_id' => $order->id]);
 
         $this->assertNotNull($order->id);

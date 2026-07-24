@@ -9,7 +9,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends ParentModel
 {
+    public const STATUS_PENDING = 1;
+    public const STATUS_COMPLETED = 2;
     public const STATUS_CANCELLED = 5;
+
+    public const PAYMENT_METHOD_COD = 1;
+    public const PAYMENT_METHOD_CASH = 2;
+    public const PAYMENT_METHOD_BANK_TRANSFER = 3;
+    public const PAYMENT_METHOD_DEBT = 4;
 
     protected $table = 'orders';
 
@@ -38,6 +45,7 @@ class Order extends ParentModel
     ];
 
     protected $casts = [
+        'customer_id' => 'integer',
         'delivery_date' => 'date',
         'payment_method' => 'integer',
         'credit_days' => 'integer',
