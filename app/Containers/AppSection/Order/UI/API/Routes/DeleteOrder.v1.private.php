@@ -4,8 +4,8 @@
  * @apiGroup           Order
  * @apiName            DeleteOrder
  *
- * @api                {DELETE} /v1/orders/:id Cancel Order
- * @apiDescription     Chuyển đơn hàng sang trạng thái đã hủy và giữ lại dữ liệu lịch sử.
+ * @api                {DELETE} /v1/orders/:id Delete Order
+ * @apiDescription     Hard delete a Pending (1) Order with zero advance payment (advance_payment = 0). Order items will be cascade deleted. Completed, Cancelled, or orders with advance payments cannot be deleted.
  *
  * @apiVersion         1.0.0
  * @apiPermission      Authenticated ['permissions' => '', 'roles' => '']
@@ -13,8 +13,7 @@
  * @apiHeader          {String} accept=application/json
  * @apiHeader          {String} authorization=Bearer
  *
- * @apiParam           {String} id ID của đơn hàng.
- * @apiBody            {String{1..255}} cancel_reason Lý do hủy đơn hàng.
+ * @apiParam           {String} id Order Hashed ID
  *
  * @apiSuccessExample  {json} Success-Response:
  * HTTP/1.1 204 No Content
