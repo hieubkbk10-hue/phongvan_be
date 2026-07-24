@@ -3,12 +3,9 @@
 namespace App\Containers\AppSection\Product\Models;
 
 use App\Ship\Parents\Models\Model as ParentModel;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends ParentModel
 {
-    use SoftDeletes;
-
     protected $table = 'products';
 
     protected $fillable = [

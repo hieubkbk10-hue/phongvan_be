@@ -17,9 +17,8 @@ return new class extends Migration {
             $table->decimal('price', 15, 2)->default(0.00);
             $table->unsignedTinyInteger('status')->default(1);
             $table->timestamps();
-            $table->softDeletes();
 
-            $table->index(['status', 'created_at'], 'products_status_created_at_idx');
+            $table->index(['status', 'created_at']);
         });
     }
 
