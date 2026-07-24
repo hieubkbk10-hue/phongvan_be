@@ -5,14 +5,16 @@
 ## Phase 0: Audit và contract
 
 1. Đọc `AGENTS.md`, standards, skill Apiato/Laravel Dương/QA.
-2. Kiểm tra Git status, không đụng user-owned changes.
-3. Xác định expected/actual, actors, ownership và parent chain.
-4. Chốt endpoints, payload, response, Hash ID, permissions.
-5. Chốt aggregate root, child/pivot/log/history/snapshot.
-6. Chốt delete semantics: hard, soft, inactive, detach, transfer, anonymize.
-7. Chốt query/list/filter/sort/include và indexes.
-8. Chốt side effects, consistency và runtime.
-9. Đóng scope A thành A'.
+2. Kiểm tra `git status`, `git diff`, `git diff --cached`, branch hiện tại và merge/rebase/cherry-pick dang dở.
+3. Dừng nếu working tree có user-owned changes; không tự stash/reset/clean.
+4. Xác nhận base branch `master`, tạo `feature/<slug>` và ghi base commit.
+5. Xác định expected/actual, actors, ownership và parent chain.
+6. Chốt endpoints, payload, response, Hash ID, permissions.
+7. Chốt aggregate root, child/pivot/log/history/snapshot.
+8. Chốt delete semantics: hard, soft, inactive, detach, transfer, anonymize.
+9. Chốt query/list/filter/sort/include và indexes.
+10. Chốt side effects, consistency và runtime.
+11. Đóng scope A thành A'.
 
 ## Phase 1: Dependency Containers
 
@@ -266,3 +268,54 @@ storage/CDN smoke
 config/cache refresh
 rollback/runbook
 ```
+
+## Phase 17: Commit, merge và branch cleanup
+
+Mỗi implementation phase phải kết thúc bằng:
+
+1. Chạy scoped validators.
+2. Review `git status`, `git diff`, `git diff --cached`.
+3. Stage đúng file của task.
+4. Kiểm tra secret/config/log/build artifact.
+5. Commit bằng message đã ghi sẵn trong workflow.
+6. Không push.
+
+Final gate:
+
+```txt
+feature validators pass
+-> feature working tree clean
+-> checkout master
+-> master working tree clean
+-> git merge --no-ff feature/<slug>
+-> smoke validators
+-> verify task commits reachable from master
+-> git branch -d feature/<slug>
+```
+
+Nếu merge conflict hoặc smoke validator fail, dừng và giữ feature branch.
+
+## Reverse-topological abort
+
+Workflow phải ghi rollback cho từng phase và rollback tổng:
+
+```txt
+latest task
+-> runtime/consumer
+-> side effects/files
+-> API/use cases
+-> relations
+-> child schema/data
+-> parent schema/data
+-> generated scaffolding
+-> feature branch
+```
+
+Quy tắc:
+
+1. Rollback data/file trước schema nếu schema còn cần để tìm dữ liệu.
+2. Dừng producer trước khi drain/cancel queue jobs.
+3. Migration dùng exact path và có schema/data assertion sau rollback.
+4. Revert commit theo reverse-topological dependency order; prerequisite chỉ revert sau khi mọi dependent đã rollback.
+5. Nhánh chưa merge chỉ force-delete sau xác nhận abort rõ ràng.
+6. Không push bất kỳ bước cleanup nào.

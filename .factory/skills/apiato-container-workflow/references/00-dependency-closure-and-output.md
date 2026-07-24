@@ -88,12 +88,66 @@ Chốt Product/Customer/Media contract
 
 ## 6. Output bắt buộc
 
-Workflow trả cho user phải có:
+Workflow Markdown phải có:
 
 1. `Scope điều chỉnh`: A và A'.
 2. `Assumptions`: chỉ các assumption chưa có evidence.
-3. `Dependency order`: một dòng graph ngắn.
-4. Các bước đã lọc.
-5. Prompt copy-paste dưới từng bước.
-6. Definition of Done theo invariant.
-7. Không chèn code triển khai khi user chỉ xin quy trình.
+3. Mermaid dependency graph thể hiện topo forward.
+4. Mermaid lifecycle graph có complete và abort path.
+5. Git preflight, feature branch name và base branch.
+6. Các bước đã lọc.
+7. Prompt copy-paste self-contained dưới từng bước.
+8. Exact commit message cho từng bước.
+9. Rollback code, migration/data, file/runtime và validation cho từng bước.
+10. Rollback tổng theo thứ tự topo ngược.
+11. Final local merge vào `master`, verify và xóa feature branch.
+12. Definition of Done theo invariant.
+13. Không chèn code triển khai khi user chỉ xin quy trình.
+
+## 7. Artifact contract
+
+Workflow topo không trả toàn bộ trong chat. Lưu tại:
+
+```txt
+$HOME\Downloads\Current Task\YYYY-MM-DD-HHmmss-<feature-slug>-workflow.md
+```
+
+Quy tắc:
+
+1. Resolve `$HOME` của máy hiện tại, không hardcode `C:\Users\VTOS`.
+2. Tạo `Downloads\Current Task` nếu chưa tồn tại.
+3. Timestamp tới giây và collision suffix phải tránh overwrite.
+4. Đọc lại file sau khi ghi để xác nhận header, diagram, task đầu/cuối và rollback section tồn tại.
+5. Chat chỉ trả:
+   - đường dẫn file;
+   - scope A';
+   - số task;
+   - branch dự kiến;
+   - assumption/blocker cần user biết.
+
+## 8. Rollback closure
+
+Với graph forward:
+
+```txt
+A -> B -> C -> D
+```
+
+Rollback phải là:
+
+```txt
+D -> C -> B -> A
+```
+
+Mỗi task phân loại:
+
+| Loại thay đổi | Rollback bắt buộc |
+| --- | --- |
+| Code/config | Revert exact task commit hoặc restore exact files |
+| Migration schema | Exact migration path, rollback command và schema assertion |
+| Data migration/backfill | Backup/precondition, reverse transform hoặc đánh dấu irreversible |
+| File/storage | Xóa file mới hoặc phục hồi file cũ theo transaction state |
+| Queue/runtime | Dừng producer trước consumer, drain/cancel jobs, revert worker/config |
+| Permissions/seed | Revoke đúng permission/seeded rows, không xóa dữ liệu ngoài scope |
+
+Không gọi rollback “an toàn” nếu có thể mất dữ liệu. Trường hợp irreversible phải ghi stop condition, backup requirement và recovery procedure.

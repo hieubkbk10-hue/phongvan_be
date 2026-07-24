@@ -14,6 +14,12 @@
 - Có list nhưng không có pagination/index/N+1 audit.
 - Có snapshot requirement nhưng schema chỉ lưu FK.
 - Prompt bước N không nêu prerequisite đã hoàn tất.
+- Workflow dài chỉ tồn tại trong chat, không có artifact Markdown.
+- Không có Mermaid diagram nên agent không thấy dependency/rollback order.
+- Task không có exact commit message hoặc stage scope.
+- Chỉ ghi “revert commit” mà không rollback schema/data/storage/runtime.
+- Có forward topo nhưng không có reverse-topological abort path.
+- Merge/xóa branch chạy khi validators fail hoặc working tree bẩn.
 
 ## Rationalization và correction
 
@@ -31,6 +37,12 @@
 | “Transformer query thêm một chút không sao.” | Collection sẽ N+1; chuẩn bị query shape ở Task/Repository. |
 | “Prompt ngắn để agent tự hiểu context.” | Prompt phải self-contained vì agent khác không có session context. |
 | “Workflow tổng càng dài càng tốt.” | Workflow master đầy đủ, output cho user phải lọc theo trigger và A'. |
+| “User không yêu cầu file nên trả hết trong chat.” | Workflow topo phải tạo artifact trong `Downloads\Current Task`; chat chỉ trả summary và path. |
+| “Dependency order dạng text là đủ.” | Artifact phải có Mermaid diagram cho forward flow và complete/abort lifecycle. |
+| “Commit message để agent tự đặt.” | Mỗi task phải chốt exact Conventional Commit message và exact stage scope. |
+| “Rollback chỉ cần revert commit.” | Revert code không tự rollback migration, data, file, queue hoặc runtime. |
+| “Xóa feature branch local luôn an toàn.” | Branch chưa merge có thể mất commit; force-delete cần xác nhận abort rõ ràng. |
+| “Merge xong thì push luôn cho tiện.” | Workflow mặc định local-only; không push nếu user không yêu cầu riêng. |
 
 ## Baseline failures observed
 
@@ -52,6 +64,17 @@
 - Có worker nhưng không bắt buộc inventory tất cả queue hiện hữu trước khi đổi từ `sync`.
 - Chưa có rule tổng quát buộc every Job có idempotency/missing-model/failure policy.
 
+### Artifact/Git/Rollback baseline
+
+- Không tự tạo `$HOME\Downloads\Current Task`.
+- Đổ toàn bộ workflow dài vào chat.
+- Chỉ có graph text, không bắt buộc Mermaid.
+- Không có clean-tree gate, feature branch lifecycle hoặc commit-per-task contract.
+- Không có exact commit message/stage scope trong prompt.
+- Không rollback migration/data/file/runtime theo từng task.
+- Không có reverse-topological abort workflow.
+- Không có final local merge vào master và safe branch deletion.
+
 Skill phải chặn các lỗi trên bằng dependency closure, capability triggers và integrity review.
 
 ## Stop conditions
@@ -63,5 +86,9 @@ Dừng và hỏi user nếu:
 - Delete semantics ảnh hưởng dữ liệu lịch sử/legal.
 - Queue backend/deploy environment là quyết định production chưa được chốt.
 - Một dependency đã có code dở dang xung đột với contract mới.
+- Working tree có user-owned changes trước khi tạo/merge branch.
+- Rollback data là irreversible hoặc thiếu backup/recovery.
+- Merge conflict hoặc validator fail trước/sau local merge.
+- Abort yêu cầu force-delete nhánh chưa merge nhưng chưa có xác nhận rõ.
 
 Không dừng nếu chỉ cần audit code để tìm một hướng an toàn duy nhất.
