@@ -4,25 +4,22 @@ namespace App\Containers\AppSection\Order\Actions;
 
 use App\Containers\AppSection\Order\Models\Order;
 use App\Containers\AppSection\Order\Tasks\DeleteOrderTask;
+use App\Containers\AppSection\Order\Tasks\FindOrderForUpdateTask;
 use App\Containers\AppSection\Order\UI\API\Requests\DeleteOrderRequest;
-use App\Ship\Exceptions\NotFoundException;
-use App\Ship\Exceptions\UpdateResourceFailedException;
 use App\Ship\Parents\Actions\Action as ParentAction;
+use Illuminate\Support\Facades\DB;
 
 class DeleteOrderAction extends ParentAction
 {
-    /**
-     * @param DeleteOrderRequest $request
-     * @return Order
-     * @throws NotFoundException
-     * @throws UpdateResourceFailedException
-     */
-    public function run(DeleteOrderRequest $request): Order
+    public function run(DeleteOrderRequest $request): bool
     {
-        $data = $request->sanitizeInput([
-            'cancel_reason',
-        ]);
+        $orderId = (int) $request->id;
 
-        return app(DeleteOrderTask::class)->run($request->id, $data['cancel_reason']);
+        return DB::transaction(function () use ($orderId) {
+            /** @var Order $order */
+            $order = app(FindOrderForUpdateTask::class)->run($orderId);
+
+            return app(DeleteOrderTask::class)->run($order);
+        });
     }
 }

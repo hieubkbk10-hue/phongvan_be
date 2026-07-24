@@ -4,10 +4,10 @@ namespace App\Containers\AppSection\Order\Tasks;
 
 use App\Containers\AppSection\Order\Data\Repositories\OrderRepository;
 use App\Containers\AppSection\Order\Models\Order;
-use App\Ship\Exceptions\NotFoundException;
+use App\Ship\Exceptions\DeleteResourceFailedException;
+use App\Ship\Exceptions\ValidationFailedException;
 use App\Ship\Parents\Tasks\Task as ParentTask;
 use Exception;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class DeleteOrderTask extends ParentTask
 {
@@ -17,23 +17,27 @@ class DeleteOrderTask extends ParentTask
     }
 
     /**
-     * @throws NotFoundException
+     * @param Order $order
+     * @return bool
+     * @throws ValidationFailedException
+     * @throws DeleteResourceFailedException
      */
-    public function run($id, string $cancelReason): Order
+    public function run(Order $order): bool
     {
+        if ((int) $order->status !== Order::STATUS_PENDING) {
+            throw (new ValidationFailedException('Only pending orders can be deleted.'))
+                ->withErrors(['status' => ['Only pending orders can be deleted.']]);
+        }
+
+        if ((float) $order->advance_payment > 0.0) {
+            throw (new ValidationFailedException('Orders with advance payment cannot be deleted.'))
+                ->withErrors(['advance_payment' => ['Orders with advance payment cannot be deleted.']]);
+        }
+
         try {
-            /** @var Order $order */
-            $order = $this->repository->find($id);
-
-            return app(CancelOrderTask::class)->run($order, $cancelReason);
-        } catch (ModelNotFoundException) {
-            throw new NotFoundException();
-        } catch (Exception $e) {
-            if ($e instanceof NotFoundException) {
-                throw $e;
-            }
-
-            throw new NotFoundException();
+            return (bool) $order->delete();
+        } catch (Exception) {
+            throw new DeleteResourceFailedException();
         }
     }
 }
