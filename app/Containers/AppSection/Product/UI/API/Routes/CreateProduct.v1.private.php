@@ -27,4 +27,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('products', [CreateProductController::class, 'createProduct'])
     ->middleware(['auth:api']);
-

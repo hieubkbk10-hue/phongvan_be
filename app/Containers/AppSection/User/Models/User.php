@@ -52,8 +52,8 @@ class User extends ParentUserModel implements MustVerifyEmail
     protected function email(): Attribute
     {
         return new Attribute(
-            get: fn(string $value): string => strtolower($value),
-            set: fn(string $value): string => strtolower($value),
+            get: fn (string $value): string => strtolower($value),
+            set: fn (string $value): string => strtolower($value),
         );
     }
 }

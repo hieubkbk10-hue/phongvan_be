@@ -27,4 +27,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('customers', [CreateCustomerController::class, 'createCustomer'])
     ->middleware(['auth:api']);
-

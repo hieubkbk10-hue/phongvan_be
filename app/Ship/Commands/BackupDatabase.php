@@ -2,8 +2,8 @@
 
 namespace App\Ship\Commands;
 
-use Illuminate\Console\Command;
 use App\Ship\Parents\Commands\ConsoleCommand;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 use Spatie\DbDumper\Compressors\Compressor;
 use Spatie\DbDumper\Databases\MySql;
@@ -31,14 +31,13 @@ class BackupDatabase extends ConsoleCommand
      */
     public function handle()
     {
-        if (! Storage::exists('backup')) {
+        if (!Storage::exists('backup')) {
             Storage::makeDirectory('backup');
         }
 
         $filename = 'backup-' . date('Y-m-d') . '.sql.gz';
         $filepath = Storage::path('backup/' . $filename);
-        $compressor = new class implements Compressor
-        {
+        $compressor = new class () implements Compressor {
             public function useCommand(): string
             {
                 return 'gzip';

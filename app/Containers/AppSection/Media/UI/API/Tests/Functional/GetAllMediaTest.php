@@ -38,42 +38,42 @@ class GetAllMediaTest extends ApiTestCase
     // add some roles and permissions to this route's request
     // then add them to the $access array above
     // uncomment this test to test accesses
-//    public function testGetAllMediaByNonAdmin(): void
-//    {
-//        $this->getTestingUserWithoutAccess();
-//        Media::factory()->count(2)->create();
-//
-//        $response = $this->makeCall();
-//
-//        $response->assertStatus(403);
-//        $response->assertJson(
-//            fn (AssertableJson $json) =>
-//                $json->has('message')
-//                    ->where('message', 'This action is unauthorized.')
-//                    ->etc()
-//        );
-//    }
+    //    public function testGetAllMediaByNonAdmin(): void
+    //    {
+    //        $this->getTestingUserWithoutAccess();
+    //        Media::factory()->count(2)->create();
+    //
+    //        $response = $this->makeCall();
+    //
+    //        $response->assertStatus(403);
+    //        $response->assertJson(
+    //            fn (AssertableJson $json) =>
+    //                $json->has('message')
+    //                    ->where('message', 'This action is unauthorized.')
+    //                    ->etc()
+    //        );
+    //    }
 
     // TODO TEST
-//    public function testSearchMediaByFields(): void
-//    {
-//        Media::factory()->count(3)->create();
-//        // create a model with specific field values
-//        $media = Media::factory()->create([
-//            // 'name' => 'something',
-//        ]);
-//
-//        // search by the above values
-//        $response = $this->endpoint($this->endpoint . "?search=name:" . urlencode($media->name))->makeCall();
-//
-//        $response->assertStatus(200);
-//        $response->assertJson(
-//            fn (AssertableJson $json) =>
-//                $json->has('data')
-//                    // ->where('data.0.name', $media->name)
-//                    ->etc()
-//        );
-//    }
+    //    public function testSearchMediaByFields(): void
+    //    {
+    //        Media::factory()->count(3)->create();
+    //        // create a model with specific field values
+    //        $media = Media::factory()->create([
+    //            // 'name' => 'something',
+    //        ]);
+    //
+    //        // search by the above values
+    //        $response = $this->endpoint($this->endpoint . "?search=name:" . urlencode($media->name))->makeCall();
+    //
+    //        $response->assertStatus(200);
+    //        $response->assertJson(
+    //            fn (AssertableJson $json) =>
+    //                $json->has('data')
+    //                    // ->where('data.0.name', $media->name)
+    //                    ->etc()
+    //        );
+    //    }
 
     public function testSearchMediaByHashID(): void
     {

@@ -24,15 +24,15 @@ class CreateMediaTaskTest extends TestCase
     }
 
     // TODO TEST
-//    public function testCreateMediaWithInvalidData(): void
-//    {
-//        $this->expectException(CreateResourceFailedException::class);
-//
-//        $data = [
-//            // put some invalid data here
-//            // 'invalid' => 'data',
-//        ];
-//
-//        app(CreateMediaTask::class)->run($data);
-//    }
+    //    public function testCreateMediaWithInvalidData(): void
+    //    {
+    //        $this->expectException(CreateResourceFailedException::class);
+    //
+    //        $data = [
+    //            // put some invalid data here
+    //            // 'invalid' => 'data',
+    //        ];
+    //
+    //        app(CreateMediaTask::class)->run($data);
+    //    }
 }

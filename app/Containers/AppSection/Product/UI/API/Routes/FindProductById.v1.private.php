@@ -27,4 +27,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('products/{id}', [FindProductByIdController::class, 'findProductById'])
     ->middleware(['auth:api']);
-

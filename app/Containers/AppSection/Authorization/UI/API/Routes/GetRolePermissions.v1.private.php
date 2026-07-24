@@ -22,4 +22,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('roles/{id}/permissions', [GetRolePermissionsController::class, 'getRolePermissions'])
     ->middleware(['auth:api']);
-

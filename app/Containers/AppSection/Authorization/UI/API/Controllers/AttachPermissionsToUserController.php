@@ -23,5 +23,4 @@ class AttachPermissionsToUserController extends ApiController
 
         return $this->transform($user, UserTransformer::class, ['permissions']);
     }
-
 }

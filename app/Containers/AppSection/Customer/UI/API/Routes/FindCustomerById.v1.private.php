@@ -27,4 +27,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('customers/{id}', [FindCustomerByIdController::class, 'findCustomerById'])
     ->middleware(['auth:api']);
-

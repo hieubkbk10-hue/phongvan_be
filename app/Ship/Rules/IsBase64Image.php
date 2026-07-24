@@ -12,8 +12,8 @@ class IsBase64Image implements Rule
      * @return void
      */
     public function __construct(
-        private string $name)
-    {
+        private string $name
+    ) {
 
     }
 

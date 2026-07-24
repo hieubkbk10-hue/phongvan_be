@@ -2,15 +2,14 @@
 
 namespace App\Ship\Commands;
 
-use Illuminate\Console\Command;
-use Illuminate\Support\Str;
 use App\Ship\Parents\Commands\ConsoleCommand;
+use Illuminate\Console\Command;
 
 class CreateCommand extends ConsoleCommand
 {
     /**
      * Folder chứa file được tạo
-     * 
+     *
      * @var string
      */
     protected $saveDir = '/Ship/Commands/';
@@ -40,10 +39,10 @@ class CreateCommand extends ConsoleCommand
 
         $content = $this->getStubContent('command');
         $content = $this->parseStubContent($content, [
-            'class-name' => $name
+            'class-name' => $name,
         ]);
         $this->generateFile($name, $content);
-        
+
         return Command::SUCCESS;
     }
 }

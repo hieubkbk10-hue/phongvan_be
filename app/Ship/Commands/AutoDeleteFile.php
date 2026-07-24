@@ -2,8 +2,8 @@
 
 namespace App\Ship\Commands;
 
-use Illuminate\Console\Command;
 use App\Ship\Parents\Commands\ConsoleCommand;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
 class AutoDeleteFile extends ConsoleCommand

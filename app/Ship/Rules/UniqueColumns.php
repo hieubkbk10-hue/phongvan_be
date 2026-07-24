@@ -16,8 +16,8 @@ class UniqueColumns implements Rule
         private string $table,
         private array $columns,
         private int $ignoreId = 0,
-        private string $ignoreColumn = 'id')
-    {
+        private string $ignoreColumn = 'id'
+    ) {
 
     }
 

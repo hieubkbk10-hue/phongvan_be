@@ -24,4 +24,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::delete('users/{id}/permissions', [DetachPermissionsFromUserController::class, 'detachPermissionFromUser'])
     ->middleware(['auth:api']);
-

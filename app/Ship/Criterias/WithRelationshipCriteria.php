@@ -36,7 +36,7 @@ class WithRelationshipCriteria extends Criteria
                     $query->where($this->column, $this->value);
                 }
             });
-        } else if ($this->type === 'doesntHave') {
+        } elseif ($this->type === 'doesntHave') {
             if (is_null($this->column)) {
                 return $model->doesntHave($this->with);
             }

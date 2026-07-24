@@ -2,16 +2,16 @@
 
 namespace App\Ship\Parents\Repositories;
 
-use Illuminate\Support\Carbon;
 use Apiato\Core\Abstracts\Repositories\Repository as AbstractRepository;
-use App\Ship\Criterias\ThisBetweenDatesCriteria;
 use App\Ship\Criterias\IsNullCriteria;
 use App\Ship\Criterias\NotNullCriteria;
 use App\Ship\Criterias\RandomCriteria;
+use App\Ship\Criterias\ThisBetweenDatesCriteria;
 use App\Ship\Criterias\ThisConditionThatCriteria;
 use App\Ship\Criterias\ThisEqualThatCriteria;
 use App\Ship\Criterias\ThisLikeThatCriteria;
 use App\Ship\Criterias\WithRelationshipCriteria;
+use Illuminate\Support\Carbon;
 
 abstract class Repository extends AbstractRepository
 {
@@ -20,10 +20,10 @@ abstract class Repository extends AbstractRepository
         $request = request();
         $query = $request->query();
         if ($request->isMethod('get')) {
-            if (array_key_exists('searchDate', $query) AND $query['searchDate']) {
+            if (array_key_exists('searchDate', $query) and $query['searchDate']) {
                 $searchDate = explode('|', $query['searchDate']);
                 $field = 'created_at';
-                if (isset($searchDate[1]) AND ($searchDate[1] == 'updated_at' OR array_key_exists($searchDate[1], $this->fieldSearchable))) {
+                if (isset($searchDate[1]) and ($searchDate[1] == 'updated_at' or array_key_exists($searchDate[1], $this->fieldSearchable))) {
                     $field = $searchDate[1];
                 }
 
@@ -39,7 +39,7 @@ abstract class Repository extends AbstractRepository
                 unset($query['searchDate']);
             }
 
-            if (array_key_exists('searchNull', $query) AND $query['searchNull']) {
+            if (array_key_exists('searchNull', $query) and $query['searchNull']) {
                 $searchNull = explode(';', $query['searchNull']);
 
                 foreach ($searchNull as $_item) {
@@ -59,9 +59,9 @@ abstract class Repository extends AbstractRepository
                 unset($query['searchNull']);
             }
 
-            if (array_key_exists('searchInclude', $query) AND $query['searchInclude']) {
+            if (array_key_exists('searchInclude', $query) and $query['searchInclude']) {
                 $searchInclude = explode(';', $query['searchInclude']);
-                
+
                 foreach ($searchInclude as $_item) {
                     $arr = explode(':', $_item);
                     if (count($arr) != 2) {
@@ -119,7 +119,7 @@ abstract class Repository extends AbstractRepository
 
                 unset($query['searchFields']);
             }
-            
+
             foreach ($query as $field => $value) {
                 if (array_key_exists($field, $this->fieldSearchable)) {
                     $condition = isset($operator[$field]) ? $operator[$field] : $this->fieldSearchable[$field];
@@ -132,7 +132,7 @@ abstract class Repository extends AbstractRepository
                         if (in_array($condition, ['in','notin','between'])) {
                             $value = explode(',', $value);
                         }
-                        
+
                         $this->pushCriteria(new ThisConditionThatCriteria($field, $condition, $value));
                     }
                 }

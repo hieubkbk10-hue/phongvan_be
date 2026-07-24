@@ -18,4 +18,3 @@ class ProductFactory extends ParentFactory
         ];
     }
 }
-

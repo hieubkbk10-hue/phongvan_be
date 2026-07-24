@@ -66,21 +66,21 @@ class FindMediaByIdTest extends ApiTestCase
     // uncomment this test
     // modify it to your needs
     // test the relation
-//    public function testFindMediaWithRelation(): void
-//    {
-//        $media = Media::factory()->create();
-//        $relation = 'roles';
-//
-//        $response = $this->injectId($media->id)->endpoint($this->endpoint . "?include=$relation")->makeCall();
-//
-//        $response->assertStatus(200);
-//        $response->assertJson(
-//            fn (AssertableJson $json) =>
-//              $json->has('data')
-//                  ->where('data.id', $media->getHashedKey())
-//                  ->count("data.$relation.data", 1)
-//                  ->where("data.$relation.data.0.name", 'something')
-//                  ->etc()
-//        );
-//    }
+    //    public function testFindMediaWithRelation(): void
+    //    {
+    //        $media = Media::factory()->create();
+    //        $relation = 'roles';
+    //
+    //        $response = $this->injectId($media->id)->endpoint($this->endpoint . "?include=$relation")->makeCall();
+    //
+    //        $response->assertStatus(200);
+    //        $response->assertJson(
+    //            fn (AssertableJson $json) =>
+    //              $json->has('data')
+    //                  ->where('data.id', $media->getHashedKey())
+    //                  ->count("data.$relation.data", 1)
+    //                  ->where("data.$relation.data.0.name", 'something')
+    //                  ->etc()
+    //        );
+    //    }
 }

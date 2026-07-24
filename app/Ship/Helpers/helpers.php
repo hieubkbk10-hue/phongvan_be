@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 if (!function_exists('get_auth')) {
     /**
      * Lấy thông tin tài khoản đăng nhập
-     * 
+     *
      * @return User
      */
     function get_auth()
@@ -22,10 +22,10 @@ if (!function_exists('get_auth')) {
 if (!function_exists('storage_url')) {
     /**
      * Lấy liên kết tập tin
-     * 
+     *
      * @param string $path
      * @param string|null $disk
-     * 
+     *
      * @return string
      */
     function storage_url($path, $disk = null)
@@ -48,9 +48,9 @@ if (!function_exists('storage_url')) {
 if (!function_exists('cdn_path')) {
     /**
      * Lấy đường dẫn file của cdn url
-     * 
+     *
      * @param array|string $urls
-     * 
+     *
      * @return array|string
      */
     function cdn_path($urls)
@@ -59,7 +59,7 @@ if (!function_exists('cdn_path')) {
         $host = $cdn['url'] . '/' . $cdn['dir'] . '/';
 
         if (is_array($urls)) {
-            return array_map(fn($url) => str_replace($host, '', $url), $urls);
+            return array_map(fn ($url) => str_replace($host, '', $url), $urls);
         }
 
         return str_replace($host, '', $urls);
@@ -69,15 +69,15 @@ if (!function_exists('cdn_path')) {
 if (!function_exists('cdn_url')) {
     /**
      * Lấy url đầy đủ của cdn
-     * 
+     *
      * @param array|string $paths
-     * 
+     *
      * @return array|string
      */
     function cdn_url($paths)
     {
         if (is_array($paths)) {
-            return array_map(fn($path) => storage_url($path, 'cdn'), $paths);
+            return array_map(fn ($path) => storage_url($path, 'cdn'), $paths);
         }
 
         return storage_url($paths, 'cdn');
@@ -87,10 +87,10 @@ if (!function_exists('cdn_url')) {
 if (!function_exists('cdn_upload')) {
     /**
      * Upload file lên cdn
-     * 
+     *
      * @param UploadedFile $file
      * @param string $dir
-     * 
+     *
      * @return string
      */
     function cdn_upload($file, $dir = '')
@@ -109,9 +109,9 @@ if (!function_exists('cdn_upload')) {
 if (!function_exists('cdn_delete')) {
     /**
      * Xóa cdn url
-     * 
+     *
      * @param array|string $paths
-     * 
+     *
      * @return void
      */
     function cdn_delete($paths)
@@ -124,9 +124,9 @@ if (!function_exists('cdn_delete')) {
 if (!function_exists('generate_avatar')) {
     /**
      * Tạo ảnh đại diện bằng tên
-     * 
+     *
      * @param string $name
-     * 
+     *
      * @return string
      */
     function generate_avatar(string $name)
@@ -173,7 +173,7 @@ if (!function_exists('generate_avatar')) {
 if (!function_exists('get_include')) {
     /**
      * Lấy tham số include từ request
-     * 
+     *
      * @return array
      */
     function get_include()
@@ -192,9 +192,9 @@ if (!function_exists('get_include')) {
 if (!function_exists('has_include')) {
     /**
      * Kiểm tra include tồn tại trong request
-     * 
+     *
      * @param string $name
-     * 
+     *
      * @return bool
      */
     function has_include($name)
@@ -204,7 +204,7 @@ if (!function_exists('has_include')) {
             return false;
         }
 
-        $exists = Arr::first($includes, fn($include) => $include == $name or in_array($name, explode('.', $include)));
+        $exists = Arr::first($includes, fn ($include) => $include == $name or in_array($name, explode('.', $include)));
 
         return $exists;
     }
@@ -213,9 +213,9 @@ if (!function_exists('has_include')) {
 if (!function_exists('parse_statuses')) {
     /**
      * Chuyển đổi danh sách trạng thái
-     * 
+     *
      * @param array $statuses
-     * 
+     *
      * @return array
      */
     function parse_statuses($statuses)
@@ -239,9 +239,9 @@ if (!function_exists('parse_statuses')) {
 if (!function_exists('get_urls_from_content')) {
     /**
      * Lấy danh sách urls trong nội dung
-     * 
+     *
      * @param string $content
-     * 
+     *
      * @return array
      */
     function get_urls_from_content($content)

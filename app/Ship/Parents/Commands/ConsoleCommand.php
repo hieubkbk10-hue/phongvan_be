@@ -2,29 +2,29 @@
 
 namespace App\Ship\Parents\Commands;
 
-use Illuminate\Support\Facades\File;
 use Apiato\Core\Abstracts\Commands\ConsoleCommand as AbstractConsoleCommand;
 use Exception;
+use Illuminate\Support\Facades\File;
 
 abstract class ConsoleCommand extends AbstractConsoleCommand
 {
     /**
      * Folder chứa file được tạo
-     * 
+     *
      * @var string
      */
     protected $saveDir = '/Containers/';
 
     /**
      * Folder chứa file code mẫu
-     * 
+     *
      * @var string
      */
     protected $stubDir = 'Ship/Stubs';
 
     /**
      * Đọc nội dung file stub
-     * 
+     *
      * @param string $path
      * @return string
      */
@@ -45,7 +45,7 @@ abstract class ConsoleCommand extends AbstractConsoleCommand
      */
     protected function parseStubContent($stub, $data)
     {
-        return str_replace(array_map(fn($key) => '{{' . $key . '}}', array_keys($data)), array_values($data), $stub);
+        return str_replace(array_map(fn ($key) => '{{' . $key . '}}', array_keys($data)), array_values($data), $stub);
     }
 
     /**
@@ -63,12 +63,13 @@ abstract class ConsoleCommand extends AbstractConsoleCommand
             if (!File::isDirectory(dirname($path))) {
                 File::makeDirectory(dirname($path), 0777, true, true);
             }
-        } catch (Exception) {}
+        } catch (Exception) {
+        }
     }
 
     /**
      * Tạo file code theo đường dẫn và nội dung
-     * 
+     *
      * @param string $path
      * @param string $content
      * @param string $extension

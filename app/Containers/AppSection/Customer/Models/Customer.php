@@ -34,4 +34,3 @@ class Customer extends ParentModel
         return 'customers';
     }
 }
-

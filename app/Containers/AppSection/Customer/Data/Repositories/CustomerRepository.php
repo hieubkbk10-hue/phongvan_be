@@ -16,4 +16,3 @@ class CustomerRepository extends ParentRepository
         'email' => 'like',
     ];
 }
-

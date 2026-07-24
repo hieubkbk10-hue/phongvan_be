@@ -15,4 +15,3 @@ class ProductRepository extends ParentRepository
         'status' => '=',
     ];
 }
-

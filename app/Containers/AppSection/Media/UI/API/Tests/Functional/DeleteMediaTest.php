@@ -42,13 +42,13 @@ class DeleteMediaTest extends ApiTestCase
     // add some roles and permissions to this route's request
     // then add them to the $access array above
     // uncomment this test to test accesses
-//    public function testGivenHaveNoAccess_CannotDeleteMedia(): void
-//    {
-//        $this->getTestingUserWithoutAccess();
-//        $media = Media::factory()->create();
-//
-//        $response = $this->injectId($media->id)->makeCall();
-//
-//        $response->assertStatus(403);
-//    }
+    //    public function testGivenHaveNoAccess_CannotDeleteMedia(): void
+    //    {
+    //        $this->getTestingUserWithoutAccess();
+    //        $media = Media::factory()->create();
+    //
+    //        $response = $this->injectId($media->id)->makeCall();
+    //
+    //        $response->assertStatus(403);
+    //    }
 }

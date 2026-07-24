@@ -2,9 +2,9 @@
 
 namespace App\Ship\Commands;
 
-use Illuminate\Support\Str;
-use Illuminate\Console\Command;
 use App\Ship\Parents\Commands\ConsoleCommand;
+use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 
 class CreateApi extends ConsoleCommand
 {
@@ -35,7 +35,7 @@ class CreateApi extends ConsoleCommand
             'Delete' => 'delete',
             'Find' => 'find',
             'GetAll' => 'getall',
-            'Update' => 'update'
+            'Update' => 'update',
         ][$method];
 
         $model = $this->container;
@@ -66,7 +66,7 @@ class CreateApi extends ConsoleCommand
             'endpoint-version' => $this->docversion,
             'endpoint-url' => $this->url,
             'method-name' => $methodName,
-            'model' => $model
+            'model' => $model,
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/UI/API/Routes/' . $routeName . '.v' . $this->docversion . '.' . $this->type, $contentRoute);
 
@@ -76,7 +76,7 @@ class CreateApi extends ConsoleCommand
             'section-name' => $this->section,
             'container-name' => $this->container,
             'class-name' => $requestName,
-            'permission' => $permission
+            'permission' => $permission,
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/UI/API/Requests/' . $requestName, $contentRequest);
 
@@ -90,7 +90,7 @@ class CreateApi extends ConsoleCommand
             'method-name' => $methodName,
             'action-name' => $actionName,
             'request-name' => $requestName,
-            'entity' => $entity
+            'entity' => $entity,
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/UI/API/Controllers/' . $controllerName, $contentController);
 
@@ -131,7 +131,7 @@ class CreateApi extends ConsoleCommand
         // create Reponse
         $contentResponse = $this->getStubContent('response');
         $contentResponse = $this->parseStubContent($contentResponse, [
-            'model' => $model
+            'model' => $model,
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/UI/API/Routes/_' . Str::snake($models) . '.v' . $this->docversion . '.public', $contentResponse);
 
@@ -151,14 +151,14 @@ class CreateApi extends ConsoleCommand
             'section-name' => $this->section,
             'container-name' => $this->container,
             'class-name' => $model . 'Factory',
-            'model' => $model
+            'model' => $model,
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/Data/Factories/' . $model . 'Factory', $contentFactory);
 
         // create Migration
         $contentMigration = $this->getStubContent('migration');
         $contentMigration = $this->parseStubContent($contentMigration, [
-            'table-name' => $tableName
+            'table-name' => $tableName,
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/Data/Migrations/' . date('Y_m_d_His') . '_create_' . $tableName . '_table', $contentMigration);
 
@@ -167,7 +167,7 @@ class CreateApi extends ConsoleCommand
         $contentRepository = $this->parseStubContent($contentRepository, [
             'section-name' => $this->section,
             'container-name' => $this->container,
-            'class-name' => $model . 'Repository'
+            'class-name' => $model . 'Repository',
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/Data/Repositories/' . $model . 'Repository', $contentRepository);
 
@@ -178,7 +178,7 @@ class CreateApi extends ConsoleCommand
             'container-name' => $this->container,
             'class-name' => $model . 'Seeder',
             'model' => $model,
-            'permission-name' => $entities
+            'permission-name' => $entities,
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/Data/Seeders/' . $model . 'Seeder', $contentSeeder);
 
@@ -188,7 +188,7 @@ class CreateApi extends ConsoleCommand
             'section-name' => $this->section,
             'container-name' => $this->container,
             'class-name' => $model,
-            'table-name' => $tableName
+            'table-name' => $tableName,
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/Models/' . $model, $contentModel);
 
@@ -199,7 +199,7 @@ class CreateApi extends ConsoleCommand
             'container-name' => $this->container,
             'class-name' => $model . 'Transformer',
             'model' => $model,
-            'variable' => Str::camel($model)
+            'variable' => Str::camel($model),
         ]);
         $this->generateFile($this->section . '/' . $this->container . '/UI/API/Transformers/' . $model . 'Transformer', $contentTransformer);
 
@@ -216,13 +216,13 @@ class CreateApi extends ConsoleCommand
         $this->type = $this->option('type');
         $this->section = $this->ask('Nhập tên của Section', 'AppSection');
         $this->container = $this->ask('Nhập tên của Container');
-        
+
         if (!$this->container) {
             return $this->error('Hủy yêu cầu');
         }
 
         $method = $this->choice('Chọn phương thức', [
-            'Create', 'Delete', 'Find', 'GetAll', 'Update', 'RESTful'
+            'Create', 'Delete', 'Find', 'GetAll', 'Update', 'RESTful',
         ], 0);
 
         $url = Str::pluralStudly(Str::snake($this->container, '-'));

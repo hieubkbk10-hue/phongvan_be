@@ -29,4 +29,3 @@ if (config('appSection-authentication.require_email_verification')) {
     Route::post('/email/verification-notification', [SendVerificationEmailController::class, 'sendVerificationEmail'])
         ->middleware(['auth:api']);
 }
-

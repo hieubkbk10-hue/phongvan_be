@@ -27,4 +27,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::delete('customers/{id}', [DeleteCustomerController::class, 'deleteCustomer'])
     ->middleware(['auth:api']);
-

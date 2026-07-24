@@ -38,12 +38,12 @@ class VerifyEmail extends ParentNotification implements ShouldQueue
         $hash = sha1($notifiable->getEmailForVerification());
 
         return $this->verification_url . '?url=' . URL::temporarySignedRoute(
-                'verification.verify',
-                now()->addMinutes(config('appSection-authentication.verification_link_expiration_time')),
-                [
+            'verification.verify',
+            now()->addMinutes(config('appSection-authentication.verification_link_expiration_time')),
+            [
                     'id' => $id,
                     'hash' => $hash,
                 ]
-            );
+        );
     }
 }

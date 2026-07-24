@@ -40,41 +40,41 @@ class CreateMediaTest extends ApiTestCase
     }
 
     // TODO TEST
-//    public function testCreateMediaWithInvalidFields(): void
-//    {
-//        $data = [
-//            // add some invalid field data here
-//            // 'something' => 'invalid',
-//        ];
-//
-//        $response = $this->makeCall($data);
-//
-//        $response->assertStatus(422);
-//        // validate errors and their messages here
-//        // $response->assertJson(
-//        //     fn (AssertableJson $json) =>
-//        //        $json->has('message')
-//        //            ->has('errors')
-//        //            ->where('errors.something.0', 'Some validation error message.')
-//        // );
-//    }
+    //    public function testCreateMediaWithInvalidFields(): void
+    //    {
+    //        $data = [
+    //            // add some invalid field data here
+    //            // 'something' => 'invalid',
+    //        ];
+    //
+    //        $response = $this->makeCall($data);
+    //
+    //        $response->assertStatus(422);
+    //        // validate errors and their messages here
+    //        // $response->assertJson(
+    //        //     fn (AssertableJson $json) =>
+    //        //        $json->has('message')
+    //        //            ->has('errors')
+    //        //            ->where('errors.something.0', 'Some validation error message.')
+    //        // );
+    //    }
 
     // TODO TEST
     // add some roles and permissions to this route's request
     // then add them to the $access array above
     // uncomment this test to test accesses
-//    public function testGivenHaveNoAccess_CannotCreateMedia(): void
-//    {
-//        $this->getTestingUserWithoutAccess();
-//
-//        $response = $this->makeCall([]);
-//
-//        $response->assertStatus(403);
-//        $response->assertJson(
-//            fn (AssertableJson $json) =>
-//                $json->has('message')
-//                    ->where('message', 'This action is unauthorized.')
-//                    ->etc()
-//        );
-//    }
+    //    public function testGivenHaveNoAccess_CannotCreateMedia(): void
+    //    {
+    //        $this->getTestingUserWithoutAccess();
+    //
+    //        $response = $this->makeCall([]);
+    //
+    //        $response->assertStatus(403);
+    //        $response->assertJson(
+    //            fn (AssertableJson $json) =>
+    //                $json->has('message')
+    //                    ->where('message', 'This action is unauthorized.')
+    //                    ->etc()
+    //        );
+    //    }
 }

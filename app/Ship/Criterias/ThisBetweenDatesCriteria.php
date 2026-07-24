@@ -16,11 +16,11 @@ class ThisBetweenDatesCriteria extends Criteria
 
     public function apply($model, $repository)
     {
-        if (!$this->start AND !$this->end) {
+        if (!$this->start and !$this->end) {
             return $model;
-        } else if (!$this->start) {
+        } elseif (!$this->start) {
             return $model->where($this->field, '<=', $this->end->toDateTimeString());
-        } else if (!$this->end) {
+        } elseif (!$this->end) {
             return $model->where($this->field, '>=', $this->start->toDateTimeString());
         }
 

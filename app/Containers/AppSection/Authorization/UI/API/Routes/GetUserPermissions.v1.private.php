@@ -22,4 +22,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('users/{id}/permissions', [GetUserPermissionsController::class, 'getUserPermissions'])
     ->middleware(['auth:api']);
-

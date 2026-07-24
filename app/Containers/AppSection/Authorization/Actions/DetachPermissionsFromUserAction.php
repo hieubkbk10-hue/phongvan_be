@@ -2,7 +2,6 @@
 
 namespace App\Containers\AppSection\Authorization\Actions;
 
-use App\Containers\AppSection\Authorization\Tasks\DetachPermissionsFromRoleTask;
 use App\Containers\AppSection\Authorization\Tasks\DetachPermissionsFromUserTask;
 use App\Containers\AppSection\Authorization\Tasks\FindPermissionTask;
 use App\Containers\AppSection\Authorization\UI\API\Requests\DetachPermissionsFromUserRequest;

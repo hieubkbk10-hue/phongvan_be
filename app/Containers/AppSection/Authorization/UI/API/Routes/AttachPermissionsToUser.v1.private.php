@@ -24,4 +24,3 @@ use Illuminate\Support\Facades\Route;
 
 Route::patch('users/{id}/permissions', [AttachPermissionsToUserController::class, 'attachPermissionsToUser'])
     ->middleware(['auth:api']);
-

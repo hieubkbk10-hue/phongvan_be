@@ -54,24 +54,24 @@ class UpdateMediaTest extends ApiTestCase
     }
 
     // TODO TEST
-//    public function testUpdateExistingMediaWithEmptyValues(): void
-//    {
-//        $media = Media::factory()->create();
-//        $data = [
-//            // add some fillable fields here
-//            // 'first_field' => '',
-//            // 'second_field' => '',
-//        ];
-//
-//        $response = $this->injectId($media->id)->makeCall($data);
-//
-//        $response->assertStatus(422);
-//        $response->assertJson(
-//            fn (AssertableJson $json) =>
-//            $json->has('errors')
-//                // ->where('errors.first_field.0', 'assert validation errors')
-//                // ->where('errors.second_field.0', 'assert validation errors')
-//                ->etc()
-//        );
-//    }
+    //    public function testUpdateExistingMediaWithEmptyValues(): void
+    //    {
+    //        $media = Media::factory()->create();
+    //        $data = [
+    //            // add some fillable fields here
+    //            // 'first_field' => '',
+    //            // 'second_field' => '',
+    //        ];
+    //
+    //        $response = $this->injectId($media->id)->makeCall($data);
+    //
+    //        $response->assertStatus(422);
+    //        $response->assertJson(
+    //            fn (AssertableJson $json) =>
+    //            $json->has('errors')
+    //                // ->where('errors.first_field.0', 'assert validation errors')
+    //                // ->where('errors.second_field.0', 'assert validation errors')
+    //                ->etc()
+    //        );
+    //    }
 }
