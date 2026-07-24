@@ -8,6 +8,7 @@
 - Không mở rộng scope ngoài yêu cầu. Chỉ sửa đúng phần liên quan trực tiếp đến task.
 - Không tự ý format/refactor code lân cận nếu không cần thiết, tránh git noise và regression.
 - Khi kết luận hoặc đề xuất, tách rõ Observation, Inference, Decision và nêu evidence bằng file path, command output hoặc dòng code liên quan.
+- Khi tổng hợp sơ đồ luồng nghiệp vụ hệ thống, ưu tiên viết theo mẫu **Cross-Entity Interactive Mindmap** (định dạng Markdown Markmap: phân rã cấp độ thu gọn/mở rộng + dùng tham chiếu chéo `[🔗 Ref]` để chống lặp node).
 
 ## 2. Vệ sinh workspace
 
