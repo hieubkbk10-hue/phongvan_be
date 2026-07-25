@@ -20,6 +20,17 @@ class GetAllCustomersTask extends ParentTask
      */
     public function run(): mixed
     {
-        return $this->addRequestCriteria()->repository->paginate();
+        $trashed = request('trashed');
+        if ($trashed === 'only') {
+            $this->repository->scopeQuery(fn ($query) => $query->onlyTrashed());
+        } elseif ($trashed === 'with') {
+            $this->repository->scopeQuery(fn ($query) => $query->withTrashed());
+        }
+
+        return $this->addRequestCriteria()
+            ->repository
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate();
     }
 }
