@@ -7,30 +7,17 @@ use Illuminate\Validation\Rule;
 
 class GetAllCustomersRequest extends ParentRequest
 {
-    /**
-     * Define which Roles and/or Permissions has access to this request.
-     */
     protected array $access = [
         'permissions' => '',
         'roles' => '',
     ];
 
-    /**
-     * Id's that needs decoding before applying the validation rules.
-     */
     protected array $decode = [
     ];
 
-    /**
-     * Defining the URL parameters (e.g, `/user/{id}`) allows applying
-     * validation rules on them and allows accessing them like request data.
-     */
     protected array $urlParameters = [
     ];
 
-    /**
-     * Get the validation rules that apply to the request.
-     */
     public function rules(): array
     {
         return [
@@ -38,16 +25,15 @@ class GetAllCustomersRequest extends ParentRequest
             'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'search' => ['sometimes', 'nullable', 'string'],
             'searchFields' => ['sometimes', 'nullable', 'string'],
+            'searchJoin' => ['sometimes', 'nullable', 'string', Rule::in(['and', 'or', 'AND', 'OR'])],
             'orderBy' => ['sometimes', 'nullable', 'string'],
             'sortedBy' => ['sometimes', 'nullable', 'string', Rule::in(['asc', 'desc', 'ASC', 'DESC'])],
             'filter' => ['sometimes', 'nullable', 'string'],
             'include' => ['sometimes', 'nullable', 'string'],
+            'trashed' => ['sometimes', 'nullable', 'string'],
         ];
     }
 
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return $this->check([
@@ -58,7 +44,7 @@ class GetAllCustomersRequest extends ParentRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $allowed = ['page', 'limit', 'search', 'searchFields', 'orderBy', 'sortedBy', 'filter', 'include'];
+            $allowed = ['page', 'limit', 'search', 'searchFields', 'searchJoin', 'orderBy', 'sortedBy', 'filter', 'include', 'trashed'];
             $inputKeys = array_keys($this->all());
             $extra = array_diff($inputKeys, $allowed);
             if (!empty($extra)) {

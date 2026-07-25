@@ -25,6 +25,7 @@ class GetAllProductsRequest extends ParentRequest
             'limit' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'search' => ['sometimes', 'nullable', 'string'],
             'searchFields' => ['sometimes', 'nullable', 'string'],
+            'searchJoin' => ['sometimes', 'nullable', 'string', Rule::in(['and', 'or', 'AND', 'OR'])],
             'orderBy' => ['sometimes', 'nullable', 'string'],
             'sortedBy' => ['sometimes', 'nullable', 'string', Rule::in(['asc', 'desc', 'ASC', 'DESC'])],
             'filter' => ['sometimes', 'nullable', 'string'],
@@ -42,7 +43,7 @@ class GetAllProductsRequest extends ParentRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $allowed = ['page', 'limit', 'search', 'searchFields', 'orderBy', 'sortedBy', 'filter', 'include'];
+            $allowed = ['page', 'limit', 'search', 'searchFields', 'searchJoin', 'orderBy', 'sortedBy', 'filter', 'include'];
             $inputKeys = array_keys($this->all());
             $extra = array_diff($inputKeys, $allowed);
             if (!empty($extra)) {
