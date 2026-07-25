@@ -54,11 +54,11 @@ class OrderTransformer extends ParentTransformer
 
     public function includeCustomer(Order $order): Item|NullResource
     {
-        if ($order->customer === null) {
-            return $this->null();
-        }
+        // if ($order->customer === null) {
+        //     return $this->null();
+        // }
 
-        return $this->item($order->customer, new CustomerTransformer());
+        return $this->nullableItem($order->customer, new CustomerTransformer());
     }
 
     public function includeItems(Order $order): Collection
