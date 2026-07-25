@@ -24,13 +24,15 @@ class CompleteOrderRequest extends ParentRequest
     {
         return [
             'id' => ['required', Rule::exists('orders', 'id')],
+            'delivery_date' => ['sometimes', 'nullable', 'date'],
+            'shipping_carrier' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            $allowed = ['id'];
+            $allowed = ['id', 'delivery_date', 'shipping_carrier'];
             $inputKeys = array_keys($this->all());
             $extra = array_diff($inputKeys, $allowed);
             if (!empty($extra)) {
