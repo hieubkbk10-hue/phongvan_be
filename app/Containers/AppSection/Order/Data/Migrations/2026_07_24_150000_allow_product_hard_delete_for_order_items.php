@@ -13,7 +13,11 @@ return new class () extends Migration {
         if (DB::getDriverName() !== 'sqlite') {
             Schema::table(OrderItem::getTableName(), function (Blueprint $table) {
                 $table->dropForeign(['product_id']);
-                $table->unsignedBigInteger('product_id')->nullable()->change();
+            });
+
+            DB::statement('ALTER TABLE ' . OrderItem::getTableName() . ' MODIFY product_id BIGINT UNSIGNED NULL');
+
+            Schema::table(OrderItem::getTableName(), function (Blueprint $table) {
                 $table->foreign('product_id')
                     ->references('id')
                     ->on(Product::getTableName())
@@ -27,7 +31,11 @@ return new class () extends Migration {
         if (DB::getDriverName() !== 'sqlite') {
             Schema::table(OrderItem::getTableName(), function (Blueprint $table) {
                 $table->dropForeign(['product_id']);
-                $table->unsignedBigInteger('product_id')->nullable(false)->change();
+            });
+
+            DB::statement('ALTER TABLE ' . OrderItem::getTableName() . ' MODIFY product_id BIGINT UNSIGNED NOT NULL');
+
+            Schema::table(OrderItem::getTableName(), function (Blueprint $table) {
                 $table->foreign('product_id')
                     ->references('id')
                     ->on(Product::getTableName());
