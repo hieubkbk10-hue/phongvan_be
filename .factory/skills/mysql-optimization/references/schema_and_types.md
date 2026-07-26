@@ -1,68 +1,87 @@
-# Chi Tiết Thiết Kế Schema, Kiểu Dữ Liệu & Functional Indexes
+# Thiết kế schema và kiểu dữ liệu
 
-## 1. Nguyên Lý Chọn Kiểu Dữ Liệu (Smaller is Better)
-- Dữ liệu nhỏ giúp bảng vật lý nhỏ hơn, chứa được nhiều hàng hơn trong 1 trang bộ nhớ (Database Page 16KB).
-- Giúp InnoDB Buffer Pool lưu trữ được nhiều trang hơn, tăng Tỷ lệ trúng bộ đệm (Cache Hit Ratio) và giảm Random Disk I/O.
+## Nguyên tắc domain-first
 
-### Chi Tiết Chọn Kiểu Số & Chuỗi:
-- `TINYINT`: 1 byte (-128..127 hoặc 0..255 UNSIGNED). Dành cho status, enum dạng số, flag boolean.
-- `SMALLINT`: 2 bytes (-32,768..32,767 hoặc 0..65,535 UNSIGNED). Dành cho danh mục nhỏ, năm.
-- `INT`: 4 bytes. Dành cho Foreign Keys hoặc số lượng vừa.
-- `BIGINT`: 8 bytes. Dành cho Primary Keys của bảng dữ liệu lớn (logs, transactions, orders).
-- `VARCHAR(N)`: Tránh khai báo `VARCHAR(255)` ngẫu nhiên vì MySQL cấp phát bộ nhớ RAM tạm thời lớn dựa trên độ dài khai báo khi thực hiện `GROUP BY` hoặc `ORDER BY`.
-- `TEXT` / `BLOB`: Lưu dữ liệu ngoài trang (Off-page storage). Cột `TEXT` không thể đưa hoàn toàn vào B-Tree Index (chỉ lập chỉ mục tiền tố). Khi truy vấn tạo bảng tạm trên đĩa (Disk-based temporary table), gây giảm hiệu năng nghiêm trọng.
+Chọn kiểu dữ liệu theo ý nghĩa nghiệp vụ, miền giá trị, tốc độ tăng trưởng, phép toán, định dạng trao đổi và quan hệ với bảng khác. Kích thước nhỏ giúp giảm I/O và footprint index, nhưng không được đánh đổi bằng overflow, migration sớm hoặc FK không tương thích.
 
-## 2. Quy Tắc Tránh NULL (Avoid NULL)
-- **Tác hại vật lý**: Cột nullable yêu cầu InnoDB dành riêng một ma trận bit (NULL bitmap) để theo dõi trạng thái NULL của từng hàng trong trang đĩa.
-- **Tác hại truy vấn**:
-  - Phép so sánh với NULL đòi hỏi cú pháp `IS NULL` / `IS NOT NULL`.
-  - Các hàm tổng hợp như `COUNT(column)` tự động bỏ qua giá trị NULL, dễ gây sai lệch logic.
-  - Khi cột chứa NULL nằm trong Composite Index, việc tính toán tính chọn lọc (Cardinality) của Optimizer trở nên kém chính xác.
+| Nhu cầu | Câu hỏi cần trả lời |
+|---|---|
+| ID hoặc counter | Giá trị tối đa và tốc độ tăng trưởng? Có cần số âm? Có đồng bộ qua nhiều hệ thống? |
+| Tiền | Độ chính xác và scale? Dùng `DECIMAL`, không dùng floating point cho số tiền chính xác |
+| Trạng thái | Tập giá trị có ổn định và cần FK/configurable không? Tránh magic number khó hiểu |
+| Thời gian | Lưu timezone hay UTC? Cần phạm vi và độ chính xác đến đâu? |
+| Chuỗi | Độ dài domain thực tế, collation, search/sort và index cần gì? |
 
-## 3. Quy Tắc Lưu Trữ Địa Chỉ IP
-- **Đúng**: `INT UNSIGNED` cho IPv4 (chỉ tốn 4 bytes) thay vì `VARCHAR(15)`.
-  - Viết vào DB: `INET_ATON('192.168.1.1')` -> Số `3232235777`.
-  - Đọc ra từ DB: `INET_NTOA(3232235777)` -> Chuỗi `'192.168.1.1'`.
-  - Với IPv6: Dùng `BINARY(16)` kết hợp `INET6_ATON()` và `INET6_NTOA()`.
+`VARCHAR(255)` không phải mặc định bắt buộc. Chọn giới hạn phản ánh contract và kiểm tra giới hạn index theo phiên bản MySQL, charset và row format đang chạy.
 
-## 4. Functional Indexes & Generated Columns (Virtual vs Stored)
+## Khóa chính và khóa ngoại
 
-### Nguyên lý Cô lập cột (Isolating the Column):
-Khi bọc cột bằng hàm (ví dụ `WHERE YEAR(created_at) = 2026` hoặc `WHERE actor_id + 1 = 5`), giá trị đầu ra không khớp với thứ tự sắp xếp vật lý trong cây B-Tree -> MySQL buộc phải **Full Table Scan**.
+- Cột FK phải tương thích với cột được tham chiếu về type, signedness và các thuộc tính mà MySQL yêu cầu.
+- Dùng cùng convention ID trong một bounded context giúp migration và join an toàn hơn.
+- Độ rộng ID phải đủ cho tăng trưởng; không chọn type nhỏ chỉ để tiết kiệm vài byte.
+- Laravel 9 thường dùng cặp `id()`/`foreignId()` hoặc type tương ứng với schema hiện hữu.
 
-### Virtual vs Stored Generated Columns Decision Matrix:
-| Tiêu chí | Virtual Generated Column | Stored Generated Column |
-| :--- | :--- | :--- |
-| **Lưu trữ đĩa** | 不 (0 byte), tính toán khi đọc | 有 (Lưu vật lý như cột thường) |
-| **Tốc độ Ghi** | Rất nhanh (Không tốn I/O đĩa) | Chậm hơn (Tính toán & ghi đĩa/index) |
-| **Tốc độ Đọc** | Có thể tốn CPU nếu hàm phức tạp | Rất nhanh (Đọc trực tiếp index/đĩa) |
-| **Khuyên dùng** | Hàm đơn giản (`YEAR()`, `JSON_EXTRACT`) | Hàm phức tạp OR Tần suất đọc >> Ghi |
-
-### Kỹ thuật Pseudohash (Lập chỉ mục băm cho chuỗi dài):
-```sql
--- Thay vì index chuỗi dài (URL), dùng CRC32 để index số nguyên 4-byte:
-ALTER TABLE logs ADD url_crc INT UNSIGNED AS (CRC32(long_url)) VIRTUAL;
-CREATE INDEX idx_url_crc ON logs(url_crc);
-
--- Query tối ưu (Lọc CRC32 trước, so sánh chuỗi sau để tránh đụng độ băm):
-SELECT * FROM logs 
-WHERE url_crc = CRC32('https://example.com/very/long/url')
-  AND long_url = 'https://example.com/very/long/url';
+```php
+Schema::create('orders', function (Blueprint $table): void {
+    $table->id();
+    $table->foreignId('user_id')
+        ->constrained()
+        ->restrictOnDelete();
+    $table->string('status', 32);
+    $table->timestamps();
+});
 ```
 
-## 5. Dữ Liệu JSON & Multi-Valued Indexes (MySQL 8.0+)
-- **Bản chất**: JSON lưu dạng Binary Format (cho phép Random Access), nhưng khi query `WHERE data->'$.key' = 'val'`, MySQL phải parse từng tài liệu JSON ở tầng CPU -> **Full Table Scan**.
-- **Giải pháp Index Key đơn**: Dùng Virtual Generated Column + B-Tree Index.
-- **Giải pháp Mảng JSON (Multi-Valued Index)**:
-  ```sql
-  -- Tạo Multi-valued Index cho mảng tags trong JSON:
-  ALTER TABLE orders ADD INDEX idx_tags ( (CAST(data->'$.tags' AS UNSIGNED ARRAY)) );
+Chọn `cascade`, `restrict`, `nullOnDelete` theo ownership và lifecycle của domain, không theo thói quen. Laravel có thể tự tạo index cần thiết cho foreign key qua MySQL, nhưng index phục vụ query thường cần thứ tự cột khác và phải được thiết kế riêng.
 
-  -- Query tối ưu tận dụng chỉ mục mảng:
-  SELECT * FROM orders WHERE 2026 MEMBER OF (data->'$.tags');
-  ```
+## Ngữ nghĩa `NULL`
 
-## 6. Character Sets & Collations (Tác Động Ép Kiểu Ngầm)
-- **Cơ chế ngầm**: Khi JOIN 2 cột có Collation khác nhau (ví dụ `utf8mb4_unicode_ci` vs `utf8mb4_0900_ai_ci`), MySQL thực hiện hàm ép kiểu ngầm `CONVERT(col USING ...)` -> **Vô hiệu hóa B-Tree Index**.
-- **Vấn đề bộ nhớ VARCHAR**: MySQL cấp phát bộ nhớ tạm dựa trên số bytes tối đa của Collation (ví dụ UTF-8 mb4 dự phòng 4 bytes/ký tự). Cột `VARCHAR(1000)` tốn tới 4,000 bytes trong bộ nhớ RAM tạm khi SORT / GROUP BY.
-- **SOP**: Luôn đồng bộ Character Set và Collation toàn bộ bảng trong database.
+`NULL` phù hợp khi giá trị chưa biết, chưa áp dụng hoặc chưa tồn tại là một trạng thái nghiệp vụ thực sự. Không dùng chuỗi rỗng, `0` hay ngày giả để thay thế chỉ nhằm tránh nullable.
+
+Cần xác định rõ:
+
+- `COUNT(column)` bỏ qua `NULL`, còn `COUNT(*)` đếm hàng.
+- Unique index và phép so sánh với `NULL` có semantics riêng.
+- Predicate phải dùng `IS NULL`/`IS NOT NULL`.
+- `NOT NULL` chỉ nên dùng khi invariant nghiệp vụ bảo đảm giá trị luôn tồn tại.
+
+## Địa chỉ IP
+
+- Chỉ hỗ trợ IPv4: `INT UNSIGNED` với `INET_ATON()`/`INET_NTOA()` là lựa chọn compact.
+- Hỗ trợ IPv4 và IPv6: mặc định dùng `VARBINARY(16)` với `INET6_ATON()`/`INET6_NTOA()`, vì hàm trả 4 byte cho IPv4 và 16 byte cho IPv6. Chỉ dùng `BINARY(16)` khi application chủ động chuẩn hóa IPv4 thành biểu diễn IPv4-mapped 16 byte và contract đó đã được kiểm chứng.
+- Nếu giữ chuỗi để đơn giản hóa contract, xác nhận chi phí lưu trữ/index là chấp nhận được.
+
+Laravel 9 Schema Builder `binary()` có thể compile thành `BLOB` và không biểu diễn trực tiếp `VARBINARY(16)`. Kiểm tra SQL migration được sinh ra; khi cần, dùng raw statement tương thích với phiên bản MySQL của dự án và thêm migration test.
+
+## Chuỗi, `TEXT`, JSON và generated column
+
+- `string`/`VARCHAR`: phù hợp cho dữ liệu có giới hạn và cần equality, prefix search, sort hoặc index.
+- `TEXT`: phù hợp nội dung dài; tránh đưa vào query nóng nếu không cần. Prefix index chỉ hữu ích khi query và selectivity chứng minh được.
+- JSON: phù hợp thuộc tính linh hoạt, không thay thế quan hệ và constraint cốt lõi. Trường được filter/join thường xuyên nên cân nhắc cột chuẩn hóa.
+- Generated column hoặc functional index có thể giúp truy vấn biểu thức/JSON, nhưng syntax và khả năng index phụ thuộc phiên bản MySQL. Xác nhận production version trước khi viết migration.
+
+Trước khi thêm generated column, ưu tiên predicate sargable. Ví dụ thay `YEAR(created_at) = ?` bằng khoảng thời gian. Chỉ materialize biểu thức khi workload và EXPLAIN cho thấy lợi ích.
+
+Character set/collation của cột join hoặc compare nên tương thích. Ép kiểu/collation ngầm có thể tăng chi phí hoặc cản trở cách dùng index, nhưng phải xác nhận bằng plan thay vì kết luận tuyệt đối.
+
+## Chọn UUID hay số tăng dần
+
+| Chọn | Phù hợp khi | Trade-off |
+|---|---|---|
+| Auto-increment integer | Một nguồn ghi chính, internal ID, join/index compact | Dễ đoán; cần chiến lược khi merge dữ liệu đa nguồn |
+| UUID | Tạo ID phân tán/offline, public opaque ID, merge nhiều nguồn | PK và secondary index lớn hơn; locality phụ thuộc biến thể và cách lưu |
+| Internal integer + public UUID | Muốn join compact và public ID không tuần tự | Thêm unique index, storage và mapping |
+
+Không mặc định UUIDv7 hay `BIGINT`. Nếu dùng UUID, quyết định dạng binary/chuỗi, ordering, version support và API serialization như một contract hoàn chỉnh.
+
+## Laravel 9 migration và thay đổi an toàn
+
+Các API thường dùng: `index`, `unique`, `primary`, `foreignId`, `constrained`, `foreign`, `dropIndex`, `dropUnique`, `dropForeign`. Kiểm tra tên constraint/index thực tế trước khi rollback hoặc đổi schema.
+
+Với bảng lớn hoặc contract đang được dùng, ưu tiên:
+
+1. **Expand:** thêm cột/index/contract mới theo cách tương thích ngược.
+2. **Migrate:** backfill theo batch thích ứng, quan sát lock và replication lag nếu có.
+3. **Contract:** chỉ xóa cột/index cũ sau khi mọi reader/writer đã chuyển và dữ liệu được kiểm chứng.
+
+DDL có thể gây metadata lock, rebuild hoặc tăng I/O tùy MySQL version và loại thay đổi. Lập kế hoạch triển khai, rollback và quan sát production thay vì giả định migration là online.

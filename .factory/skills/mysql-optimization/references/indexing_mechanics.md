@@ -1,63 +1,87 @@
-# Chi Tiết Cơ Chế Chỉ Mục B+Tree, Partitioning & Full-Text Search
+# Cơ chế và thiết kế index
 
-## 1. Cơ Chế Chỉ Mục B+Tree trong InnoDB
+## Bắt đầu từ query shape
 
-### Clustered Index & Secondary Index
-- **Clustered Index**: Primary Key chính là bảng dữ liệu thực tế. Các nút lá (leaf nodes) chứa toàn bộ dữ liệu cột của hàng.
-- **Secondary Index & Double Lookup**: Secondary Index chỉ lưu giá trị Primary Key. Truy vấn không bao phủ (non-covering) phải chịu **Double Lookup** (Tra cứu 2 lần: chỉ mục phụ -> lấy PK -> tra cứu Clustered Index).
+Một index tốt trả lời query cụ thể: bảng nào là điểm bắt đầu, cột nào join/filter, kết quả cần thứ tự nào, trả bao nhiêu hàng và cột nào được đọc. Không thiết kế index chỉ từ danh sách cột hoặc độ selectivity.
 
-### Quy Tắc Tiền Tố Trái Nhất & Phép So Sánh Phạm Vi (Range Breaks)
-Khi có chỉ mục `INDEX (col1, col2, col3)`:
-- Phép so sánh phạm vi (`>`, `<`, `BETWEEN`, `LIKE 'abc%'`) trên `col2` sẽ **NGẮT** khả năng dùng chỉ mục của `col3`.
-- **Quy tắc thứ tự Composite Index**: Đặt cột `=` lên đầu -> Cột *Selectivity* cao -> Cột so sánh phạm vi ở **CUỐI CÙNG**.
+Với query:
 
-### Hệ Thống Đánh Giá Chỉ Mục 3-Sao (Three-Star Index System)
-- ⭐️ **Star 1**: Gom các hàng liên quan nằm cạnh nhau trong lá B-Tree (lọc chính xác qua `WHERE`).
-- ⭐️⭐️ **Star 2**: Dữ liệu trong chỉ mục đã được sắp xếp sẵn theo đúng thứ tự (`ORDER BY`). Tránh `Using filesort`.
-- ⭐️⭐️⭐️ **Star 3**: Chỉ mục chứa **TOÀN BỘ** cột truy vấn yêu cầu (`SELECT`, `WHERE`, `ORDER BY`). Tận dụng *Covering Index* (`Using index`).
+```sql
+SELECT id, total_amount, created_at
+FROM orders
+WHERE user_id = ?
+  AND status = ?
+  AND created_at < ?
+ORDER BY created_at DESC, id DESC
+LIMIT 20;
+```
 
----
+Ứng viên cần đánh giá là `(user_id, status, created_at, id)`. Hai equality predicate tạo prefix seek, phần order/range quyết định khả năng quét tiếp và `id` làm tie-breaker. Đây là ứng viên để EXPLAIN và benchmark, không phải công thức áp dụng cho mọi query.
 
-## 2. Tối Ưu Hóa `GROUP BY` & `DISTINCT` (Scan Mechanics)
+## Equality, order, range và optional predicate
 
-- **Tight Index Scan**: MySQL quét tuần tự chỉ mục B-Tree đã sắp xếp sẵn để gom cụm các hàng thuộc cùng nhóm.
-- **Loose Index Scan (`Using index for group-by`)**: MySQL "nhảy" (seek) trực tiếp đến điểm bắt đầu của từng nhóm và bỏ qua các bản ghi trung gian -> Cực nhanh.
-- **Quy tắc `ORDER BY NULL`**: `GROUP BY` mặc định sắp xếp kết quả. Nếu không cần thứ tự, thêm `ORDER BY NULL` để tránh bước `Filesort` ngầm.
+- Cột equality thường đứng trước để thu hẹp vùng index liên tục.
+- Thứ tự `ORDER BY` quan trọng khi muốn tránh sort và dừng sớm theo `LIMIT`.
+- Điều kiện range thường giới hạn khả năng dùng các key part sau để định vị trực tiếp. Các cột sau vẫn có thể hỗ trợ Index Condition Pushdown, filtering, ordering trong một số plan hoặc covering.
+- Selectivity chỉ là một yếu tố; join order, correlation, data skew, số hàng cần trả và khả năng phục vụ sort cũng quan trọng.
+- Predicate optional tạo nhiều query shape. Một composite index lớn hiếm khi tối ưu cho mọi tổ hợp; xác định các shape thực sự nóng trước.
+- `OR` có thể dẫn đến index merge hoặc plan khác. Đôi khi tách thành `UNION ALL` đúng semantics dễ tối ưu hơn, nhưng phải đo và xử lý duplicate.
 
----
+## Leftmost prefix chính xác
 
-## 3. Partitioning (Phân Mảnh Bảng)
+Index `(a, b, c)` có thể phục vụ các prefix bắt đầu từ `a`. Bỏ `a` thường không thể seek theo `b, c` như một index độc lập, dù optimizer có thể chọn full index scan hoặc khả năng riêng của phiên bản MySQL.
 
-### Bản Chất Kỹ Thuật (Coarse Indexing)
-- Phân mảnh hoạt động như một lớp *Handler Wrapper* bao quanh nhiều bảng vật lý phụ.
-- **Mục đích**: Đóng vai trò là **Chỉ mục thô (Coarse Indexing)** thu hẹp vùng dữ liệu ở quy mô Terabytes.
+Khi `a = ? AND b BETWEEN ? AND ? AND c = ?`, MySQL có thể seek bằng `a, b`; `c` thường không mở rộng seek range nhưng vẫn có thể được kiểm tra trong index và giúp covering. Không mô tả điều này là "`c` hoàn toàn vô dụng".
 
-### Bẫy Hiệu Năng Với Secondary Index
-- Mỗi phân mảnh quản lý một cây chỉ mục cục bộ (*Local Index*).
-- Truy vấn chứa điều kiện **KHÔNG thuộc Partitioning Key** buộc MySQL phải mở và tìm kiếm trên **TẤT CẢ các phân mảnh** -> Chi phí lớn hơn nhiều so với 1 bảng không phân mảnh.
+`LIKE 'abc%'` có thể dùng range; `LIKE '%abc'` thường không dùng B-Tree để seek theo prefix. Collation, implicit conversion và expression trên cột có thể thay đổi plan.
 
-### Quy Tắc Thiết Kế Partitioning:
-1. Mọi Primary Key / Unique Index phải bao gồm tất cả các cột thuộc Partitioning Key.
-2. Giới hạn số lượng phân mảnh tối đa khoảng **150-200** để tránh overhead mở/khóa Handler.
-3. Luôn dùng điều kiện lọc chuẩn để kích hoạt **Pruning** (cắt tỉa phân mảnh, kiểm tra bằng `EXPLAIN PARTITIONS`).
+## Covering index và chi phí ghi
 
----
+Secondary index InnoDB chứa secondary key và primary key. Nếu index có đủ dữ liệu query cần, optimizer có thể tránh lookup về clustered index. Lợi ích lớn nhất thường xuất hiện ở scan nhiều candidate rows nhưng trả ít cột.
 
-## 4. Full-Text Search (FTS) vs B-Tree
+Đổi lại, mỗi cột thêm vào index:
 
-### Inverted Index (Chỉ Mục Đảo Ngược)
-- B-Tree không thể tìm từ nằm giữa chuỗi (`LIKE '%keyword%'` gây Full Table Scan).
-- FTS phân rã văn bản thành các từ khóa (keywords) và lưu con trỏ tài liệu tương ứng.
-- Sử dụng cú pháp `MATCH(content) AGAINST('keyword' IN BOOLEAN MODE)`.
+- tăng dung lượng và cache footprint;
+- tăng I/O/CPU cho insert, update, delete;
+- có thể giảm fan-out và tăng page split;
+- kéo dài migration và bảo trì.
 
-### Khi Nào Cần Chuyển Sang Sphinx / Elasticsearch?
-1. Dữ liệu quy mô Terabyte / Hàng trăm triệu dòng.
-2. Cần tìm kiếm phân tán (Distributed Search trên dữ liệu Sharding).
-3. Yêu cầu độ chính xác cao về vị trí từ (Phrase Proximity / BM25 Ranking phức tạp).
-4. Phân trang trang lớn (`OFFSET` lớn) trên kết quả tìm kiếm.
+Không thêm cột payload lớn chỉ để đạt covering. So sánh latency đọc với write throughput và kích thước index.
 
----
+## Đọc EXPLAIN theo ngữ cảnh
 
-## 5. Cơ Chế Change Buffer (Insert Buffer) Trong InnoDB
-- **Tác dụng**: Tránh bão *Random Disk I/O* khi `INSERT/UPDATE` trên các chỉ mục phụ không duy nhất (Non-unique Secondary Indexes).
-- **Cách hoạt động**: Khi trang chỉ mục phụ chưa nằm trong Buffer Pool, InnoDB hoãn ghi đĩa và lưu thay đổi vào Change Buffer. Khi trang đó được đọc vào RAM theo cách tự nhiên, InnoDB thực hiện **Merge** hàng loạt thay đổi vào đĩa trong 1 thao tác I/O duy nhất.
+Kiểm tra đồng thời:
+
+| Trường | Câu hỏi |
+|---|---|
+| `key`, `possible_keys` | Optimizer chọn index nào, vì sao candidate khác không được chọn? |
+| `key_len` | Bao nhiêu key part thực sự tham gia truy cập? |
+| `rows` | Ước lượng số hàng phải xem; có lệch lớn do statistics/skew không? |
+| `filtered` | Bao nhiêu phần trăm còn lại sau filter? |
+| `ref` và join order | Join được tra bằng key nào và bảng nào đi trước? |
+| `Extra` | Có covering, ICP, sort, temporary table hay residual condition không? |
+
+`ALL` có thể đúng với bảng nhỏ hoặc query đọc phần lớn bảng. `Using filesort` có thể rẻ hơn index scan cộng nhiều random lookup. `Using temporary` có thể là cách thực thi hợp lý cho aggregate. Cần so rows, bytes và actual timing thay vì đánh dấu lỗi chỉ từ nhãn.
+
+Nếu production MySQL hỗ trợ, `EXPLAIN ANALYZE` cung cấp actual rows/loops/timing nhưng thực thi query; dùng thận trọng với query ghi hoặc workload nhạy cảm. Với `EXPLAIN` thường, nhớ rằng `rows` và `filtered` là estimate.
+
+## Index trùng và dư thừa
+
+- `(a, b)` thường dư thừa khi đã có `(a, b, c)`, nhưng chỉ xóa sau khi kiểm tra uniqueness, prefix length, sort direction, covering và query khác.
+- `(a)` không thay thế `(b, a)`.
+- Unique index vừa enforce invariant vừa là access path; không xóa chỉ vì một non-unique index có cùng prefix.
+- FK index do MySQL yêu cầu có thể không đủ cho query dùng thêm status/order.
+
+Trước khi thêm index: inventory index hiện tại, tìm overlap, đo write cost. Trước khi xóa: kiểm tra workload/slow log, deploy quan sát được và có rollback.
+
+## Partitioning và full-text là công cụ nâng cao
+
+### Partitioning
+
+Chỉ cân nhắc khi partition pruning, lifecycle/retention hoặc vận hành bảng lớn mang lại lợi ích rõ. Partition key ảnh hưởng unique key, query shape và maintenance. Query không prune có thể chạm nhiều partition. Cần benchmark trên phân bố dữ liệu và số partition dự kiến; không chọn theo ngưỡng hàng cố định.
+
+### Full-text search
+
+MySQL FULLTEXT phù hợp khi semantics tokenization, language, ranking và vận hành đáp ứng yêu cầu. Search engine ngoài phù hợp khi cần analyzer tùy biến, typo tolerance, relevance phức tạp, distributed search hoặc scale/availability độc lập. Quyết định dựa trên tính năng, SLO và chi phí vận hành, không dựa trên số hàng tùy tiện.
+
+Optimizer hints như `FORCE INDEX` hoặc join-order hint chỉ nên dùng sau khi statistics, query shape và index đã được kiểm tra. Hint tạo coupling với dữ liệu và phiên bản; luôn kèm benchmark, lý do và kế hoạch gỡ bỏ.

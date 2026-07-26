@@ -1,94 +1,61 @@
 ---
 name: mysql-optimization
-description: Quy chuẩn và kỹ thuật tối ưu hóa MySQL, chỉ mục (Index), thiết kế Schema và Eloquent/Query Builder trong dự án Laravel Apiato.
+description: Use when reviewing or changing MySQL schema, indexes, Eloquent or Query Builder queries, pagination, bulk writes, transactions, locks, or database performance in Laravel 9 and Apiato applications.
 ---
 
-# MySQL Performance & Query Optimization Skill
+# Tối ưu MySQL cho Laravel 9 và Apiato
 
-Tài liệu hướng dẫn quy chuẩn và kỹ thuật tối ưu hóa MySQL cho Developer và AI Agent khi làm việc với Laravel 9 / Apiato framework.
+## Nguyên tắc
 
----
+Đo trước khi tối ưu. Giảm hàng và byte đọc/ghi nhưng giữ đúng invariant. Trong Apiato, đặt query/mutation tại Task hoặc Repository, orchestration tại Action, validation tại Request và schema trong migration.
 
-## ⚡ 1. Quy Tắc Nhanh (Quick Checklist)
+## Khi dùng
 
-- 🚫 **Không dùng `SELECT *`**: Luôn chọn chính xác danh sách cột cần thiết để tận dụng *Covering Index* và giảm băng thông CPU/RAM.
-- 🚫 **Tránh N+1 Query**: Luôn Eager Load mối quan hệ (`with([...])`) ở tầng Task/Repository.
-- 🚫 **Không dùng OFFSET lớn**: Với trang lớn (`LIMIT 500000, 20`), sử dụng *Deferred Join* hoặc *Keyset Pagination*.
-- 🛡️ **Bắt buộc `NOT NULL`**: Đặt `NOT NULL` và giá trị mặc định cho cột trừ khi bắt buộc cần logic `NULL`.
-- 🔑 **Thứ tự Composite Index**: Đặt cột so sánh bằng (`=`) lên trước -> Cột có *Selectivity* cao -> Cột so sánh khoảng (`>`, `<`, `BETWEEN`, `LIKE`) ở cuối cùng.
-- ⏳ **Transaction Ngắn**: Không thực hiện API call ngoài, upload file hay gửi email bên trong `DB::transaction(...)`.
+Dùng khi endpoint/job chậm, N+1, CPU/I/O tăng; khi thiết kế migration, index, pagination, bulk write, transaction hay cache lock.
 
----
+Không dùng để tự ý đổi cấu hình global MySQL, isolation, replication hoặc hạ tầng. Việc đó cần DBA, benchmark và correctness review.
 
-## 🎯 2. Thiết Kế Schema, Data Types & Functional Indexes
+## Guardrails
 
-1. **Kiểu dữ liệu nhỏ nhất có thể**:
-   - Dùng `TINYINT` cho status/type thay vì `INT` hoặc `VARCHAR`.
-   - Dùng `BIGINT AUTO_INCREMENT` hoặc `UUID v7` (Ordered UUID) làm Primary Key. Tránh UUID v4 (ngẫu nhiên) gây *Page Splits* trên InnoDB Clustered Index.
-   - Lưu IP bằng `INT UNSIGNED` kết hợp `INET_ATON()` / `INET_NTOA()`.
-2. **Virtual / Stored Generated Columns & Multi-Valued Indexes**:
-   - Tránh bọc cột bằng hàm trong `WHERE`. Dùng Virtual Generated Column để lập chỉ mục cho biểu thức hoặc trường JSON.
-   - Đồng bộ Character Set và Collation toàn hệ thống để tránh lỗi ép kiểu ngầm làm vô hiệu hóa B-Tree Index.
+- Domain correctness trước tốc độ; kiểu dữ liệu, `NULL`, FK và uniqueness phản ánh nghiệp vụ.
+- Filter, aggregate, sort, limit tại DB; không tải toàn bộ rồi lọc bằng PHP.
+- Chỉ chọn cột cần dùng, nhưng eager-loaded relation phải giữ primary/foreign keys.
+- Index theo query shape; tính write cost, dung lượng và index trùng.
+- Đọc `key`, `rows`, `filtered`, `Extra` và timing trong ngữ cảnh. `ALL`, filesort hay temporary không tự động là lỗi.
 
-Chi tiết nguyên lý & so sánh: [Schema, Types & Functional Indexes Reference](references/schema_and_types.md)
+## Quy trình
 
----
+| Bước | Thực hiện |
+|---|---|
+| 1. Capture | Ghi SQL, bindings, tần suất, latency, rows/bytes, dữ liệu và concurrency đại diện. |
+| 2. Reduce | Giảm cột/hàng/relation; đưa filter và aggregate vào DB. |
+| 3. Shape | Đếm query; kiểm tra N+1, eager-load constraints, `OR`, sort và pagination. |
+| 4. Schema/index | Bắt đầu từ `WHERE`, join, order, uniqueness; kiểm tra FK và write cost. |
+| 5. Explain/measure | Dùng `toSql()` cùng bindings; đọc plan và đo lại trên workload đại diện. |
+| 6. Verify | So latency, rows examined, query count, lock/deadlock, write throughput và regression. |
 
-## 🔍 3. Chiến Lược Lập Chỉ Mục (Indexing Strategy)
+## Bảng quyết định nhanh
 
-1. **B+Tree & Clustered Index**:
-   - Primary Key chính là bảng dữ liệu thực tế. Secondary Index lưu giá trị Primary Key.
-   - Truy vấn không bao phủ qua Secondary Index phải chịu **Double Lookup** (Tra cứu 2 lần).
-2. **Quy tắc Tiền Tố Trái Nhất (Leftmost Prefix Rule)**:
-   - Phép so sánh phạm vi (`>`, `<`, `BETWEEN`, `LIKE 'abc%'`) trên cột `A` sẽ **ngắt** khả năng dùng chỉ mục của các cột phía sau.
-3. **Partitioning & Full-Text Search (FTS)**:
-   - Partitioning đóng vai trò là *Coarse Indexing*. Không dùng cho bảng có nhiều Secondary Indexes không chứa Partition Key.
-   - FTS sử dụng *Inverted Index*. Chuyển sang Sphinx/Elasticsearch khi dữ liệu đạt hàng trăm triệu dòng hoặc cần phân trang/tìm kiếm phân tán.
+| Khu vực | Quyết định |
+|---|---|
+| Migration | Domain-first type, FK tương thích, uniqueness và Expand-Migrate-Contract. |
+| Eloquent/N+1 | Constrained eager loading, DB-side filtering, đủ relation keys. |
+| Pagination | Ưu tiên cursor cho traversal; order phải ổn định và có unique tie-breaker. |
+| Profiling | `DB::listen()` đo từng query; cumulative budget đo tổng thời gian query của request. |
+| Transaction/cache | Transaction ngắn, external effect sau commit/outbox; distributed lock cần shared backend và idempotency. |
 
-Chi tiết nguyên lý & Hệ thống 3-Sao: [Indexing Mechanics Reference](references/indexing_mechanics.md)
+## Red flags
 
----
+- Cursor order không deterministic; deferred join thiếu outer `ORDER BY`.
+- Giả định Laravel 9 có API dựng raw SQL thay vì SQL và bindings tách biệt.
+- `upsert()` không có PK/unique index thể hiện conflict.
+- Retry callback không idempotent hoặc gọi external effect trong transaction.
+- Batch size cố định; cache lock không dùng shared backend.
+- Dùng optimizer hint hoặc đổi server setting trước khi đo và DBA review.
 
-## 🚀 4. Kỹ Thuật Viết Lại Truy Vấn (Query Refactoring Recipes)
+## References
 
-1. **Deferred Join cho Pagination Lớn**:
-   ```php
-   $posts = DB::table('posts')
-       ->joinSub(
-           DB::table('posts')->select('id')->orderBy('created_at', 'desc')->offset(500000)->limit(20),
-           'sub',
-           'posts.id',
-           '=',
-           'sub.id'
-       )
-       ->get(['posts.id', 'posts.title', 'posts.content', 'posts.created_at']);
-   ```
-2. **Refactor `ORDER BY RAND()` & `IN()` lớn**:
-   - Dùng *PK Range Sampling* ($O(\log n)$) hoặc *Deferred Join* cho `ORDER BY RAND()`.
-   - Với danh sách `IN()` > 1,000 phần tử, refactor sang JOIN bảng tạm có `PRIMARY KEY`.
-3. **Đánh Giá EXPLAIN & Optimizer Hints**:
-   - `type`: `const` > `eq_ref` > `ref` > `range` > `index` > `ALL` (Full Table Scan 🚨).
-   - Red Flags: `Using temporary; Using filesort` 🚨.
-   - Dùng `STRAIGHT_JOIN` để ép thứ tự JOIN và bỏ qua chi phí Greedy Search của Optimizer.
-
-Chi tiết công thức Refactor & Đọc EXPLAIN: [Query Refactoring Recipes Reference](references/query_refactoring_recipes.md)
-
----
-
-## 🔒 5. Quản Lý Giao Dịch, Khóa & Deadlock (Transactions & Locks)
-
-1. **Next-Key Locks & Gap Locks**:
-   - `REPEATABLE READ` khóa các khoảng trống (Gaps) để chống Phantom Read. Tránh lạm dụng `FOR UPDATE` trên phạm vi rộng gây Deadlock.
-2. **Bẫy Khóa Ngoại (Foreign Key Traps)**:
-   - Bắt buộc tạo chỉ mục cho mọi cột Foreign Key ở bảng con để tránh Full Table Scan & Full Table Lock ở bảng con khi `UPDATE/DELETE` ở bảng cha.
-3. **Bulk Insert & Queue Worker Pattern**:
-   - Dùng Multi-row Insert với Chunking (1,000 - 10,000 dòng/lô). Đặt `innodb_autoinc_lock_mode = 2` nếu dùng Row-Based Replication.
-   - Dùng Atomic Update direct cho Queue Worker thay vì `SELECT FOR UPDATE`:
-     ```php
-     $affected = DB::table('jobs')
-         ->where('status', 'pending')
-         ->limit(1)
-         ->update(['status' => 'processing', 'worker_id' => $workerId]);
-     ```
-
-Chi tiết quản lý Transaction & Deadlock: [Transactions & Locks Reference](references/transactions_and_locks.md)
+- [Schema và kiểu dữ liệu](references/schema_and_types.md)
+- [Cơ chế index](references/indexing_mechanics.md)
+- [Query recipes Laravel 9](references/query_refactoring_recipes.md)
+- [Transaction và locks](references/transactions_and_locks.md)
