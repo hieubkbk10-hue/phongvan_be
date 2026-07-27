@@ -30,14 +30,17 @@
 
 - Bám flow hiện có: Route -> Controller -> Request -> Action -> Task -> Repository/Model -> Transformer.
 - Controller phải mỏng: nhận Request, gọi Action, trả Transformer hoặc response phù hợp.
-- Business orchestration đặt trong Action.
-- Data access, query, mutation đặt trong Task hoặc Repository theo pattern container hiện có.
+- Action là endpoint boundary: nhận Request, `sanitizeInput()`/map/enrich input và gọi đúng một Task chính.
+- Action không gọi nhiều Task, SubAction, Action khác, Repository/Model hoặc mở transaction.
+- Business orchestration, domain permission, data access và mutation đặt trong Task hoặc Repository theo pattern container hiện có.
+- Task là reusable business capability và được phép gọi/share xuyên Container; không dùng Action làm dependency tái sử dụng xuyên Container.
+- Task chính được phép gọi các Task con khi workflow cần nhiều capability. Nested transaction được chấp nhận nếu dùng cùng connection/driver hỗ trợ savepoint và exception tiếp tục propagate tới transaction ngoài cùng.
 - Validation và authorization đặt trong Request class, giữ các pattern Apiato như `$access`, `$decode`, `$urlParameters` khi file hiện có sử dụng.
 - API routes đặt trong `UI/API/Routes`, giữ naming dạng `ActionName.v1.private.php` hoặc `ActionName.v1.public.php`.
 - Route private dùng middleware/auth guard hiện có, ví dụ `auth:api`.
 - Khi đổi behavior endpoint, giữ và cập nhật block `@api` documentation ngay trong route file nếu block đó tồn tại.
 - Web route, Blade view, CLI command, mail, notification phải đặt đúng tầng `UI/WEB`, `UI/CLI`, `Mails`, `Notifications` của container tương ứng.
-- Shared logic chỉ đưa vào `app/Ship` khi thật sự dùng lại qua nhiều container.
+- Shared infrastructure chỉ đưa vào `app/Ship` khi thật sự dùng lại qua nhiều Container; shared business capability giữ trong Container sở hữu và expose qua Task.
 
 ## 5. Database, migration và performance
 
@@ -48,7 +51,10 @@
 - Tránh N+1 query. Dùng eager loading, batch load, repository criteria hoặc query phù hợp.
 - Thêm index khi thêm query pattern mới có filter/sort đáng kể.
 - Dùng pagination/limit cho danh sách, tránh endpoint trả dữ liệu không giới hạn.
-- Dùng transaction cho workflow ghi nhiều bảng hoặc có nhiều bước phụ thuộc nhau.
+- Chỉ Task được sở hữu transaction. Task ghi nhiều bảng hoặc có nhiều bước phụ thuộc phải tự bảo đảm transaction; Task chỉ đọc không cần transaction.
+- Không dùng `transactionalRun()` ở Controller/Action và không gọi `DB::transaction()`/`beginTransaction()` trong Action.
+- Task con có thể mở nested transaction; inner commit không phải commit độc lập và outer transaction vẫn có thể rollback toàn bộ.
+- Không catch-and-swallow exception cần rollback. Deadlock retry đặt ở transaction Task ngoài cùng; external side effect chạy after-commit/outbox.
 
 ## 6. React và frontend asset
 

@@ -166,8 +166,9 @@ Quy ước:
 - Dùng `sanitizeInput()` whitelist field.
 - Gán server-owned field tại backend, ví dụ `Auth::id()`.
 - Không dùng `$request->all()`.
-- Không nhồi query và business rule nặng vào Action.
-- SubAction được phép dùng khi là logic phụ, tái sử dụng rõ.
+- Gọi đúng một main Task.
+- Không gọi nhiều Task, SubAction, Action khác, Repository/Model hoặc transaction.
+- Không dùng Action làm dependency tái sử dụng xuyên Container.
 
 ## 2.9) Task
 
@@ -177,6 +178,10 @@ Quy ước:
 
 - Inject repository chính qua constructor.
 - Dùng `DB::transaction()` hoặc `beginTransaction/commit/rollBack` khi ghi nhiều bước.
+- Main Task được gọi child Tasks, kể cả Task thuộc Container khác.
+- Nested transaction được phép khi cùng connection/driver hỗ trợ savepoint; inner commit không độc lập.
+- Không catch-and-swallow exception cần rollback; phải propagate tới outermost transaction Task.
+- Deadlock retry đặt ở outermost owner; external side effect chạy after-commit/outbox.
 - Dùng `Repository::instance()` khi cần repository phụ.
 - Dùng `Repository::builder()` khi cần query builder từ repository.
 - Check domain permission qua model method như `canView()`, `canEdit()`.
@@ -191,7 +196,7 @@ if (!$project->canView()) {
 }
 ```
 
-Lưu ý vibe repo: `TodoSection` thường đặt orchestration khá nhiều trong Task. Khi sửa code, match pattern file hiện tại trước, không áp lý thuyết máy móc.
+Lưu ý vibe repo: `TodoSection` đặt business orchestration và transaction trong Task. Đây là convention mục tiêu, không di chuyển workflow lên Action.
 
 ## 2.10) Repository và Criteria
 
@@ -306,7 +311,7 @@ Quy ước:
 
 - Container có `Providers/EventServiceProvider.php` để subscribe listener.
 - `MainServiceProvider.php` register provider của container.
-- Side effect sau ghi DB nên ưu tiên after commit khi có thể.
+- External side effect sau ghi DB bắt buộc chạy after-commit/outbox với retry/idempotency.
 - Realtime payload nên đi qua Transformer, không tự build lung tung.
 
 ## 2.15) Config
@@ -419,8 +424,8 @@ Rule:
 
 - Event domain là dữ liệu đã xảy ra, nên nhỏ và rõ payload.
 - Listener xử lý side effect/cascade, không thay core write bắt buộc nếu endpoint cần consistency ngay.
-- Realtime event trong repo là ngoại lệ có thể query và gửi trong constructor, phải audit transaction order.
-- Listener slow/external nên queued và `afterCommit`.
+- Realtime event không query hoặc gửi trong constructor; delivery chạy after-commit/outbox.
+- Listener slow/external phải queued, idempotent và `afterCommit`.
 
 ## 2.22) SoftDelete là convention cho aggregate cha có restore/purge
 

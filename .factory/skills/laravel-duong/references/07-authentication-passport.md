@@ -68,7 +68,8 @@ Route
     -> Request
     -> Controller
     -> Action
-    -> Task / SubAction
+    -> Main Task
+    -> Child Tasks
     -> Passport / Repository / Model
     -> Transformer hoặc response helper
 ```
@@ -331,15 +332,13 @@ Evidence:
 
 ## 7.10. Forgot password không tiết lộ user tồn tại
 
-Action luôn để Controller trả cùng public response:
+Action chỉ sanitize input và gọi một main Task:
 
 ```php
-try {
-    $user = app(FindUserByEmailTask::class)->run($sanitizedData['email']);
-} catch (Exception) {
-    return false;
-}
+return app(ForgotPasswordTask::class)->run($sanitizedData);
 ```
+
+`ForgotPasswordTask` xử lý lookup, reset-token và exception masking nội bộ để giữ public contract thống nhất.
 
 Controller:
 
@@ -354,7 +353,8 @@ Pattern:
 - Internal result có thể khác nhau.
 - Public HTTP contract không xác nhận email có tồn tại.
 - Controller không branch response theo lookup result.
-- Mail và reset-token orchestration nằm trong Action.
+- Action chỉ chuẩn hóa input và gọi một Forgot Password main Task.
+- Reset-token orchestration nằm trong Task; mail chạy after-commit.
 
 Tư duy:
 
@@ -403,17 +403,20 @@ Verification flow:
 ```text
 Signed route
     -> Request decode URL id
-    -> FindUserByIdTask
-    -> constant-time email hash check
-    -> mark verified nếu chưa verified
-    -> notify
+    -> VerifyEmailAction
+    -> VerifyEmailTask
+        -> FindUserByIdTask
+        -> constant-time email hash check
+        -> mark verified nếu chưa verified
+        -> notify after-commit
 ```
 
 Pattern:
 
 - Route dùng signed middleware.
 - `$decode` và `$urlParameters` chứa `id`.
-- Action dùng `hash_equals()`.
+- Action chỉ chuẩn hóa input và gọi `VerifyEmailTask`.
+- `VerifyEmailTask` dùng `hash_equals()` và sở hữu state transition.
 - `hasVerifiedEmail()` làm operation idempotent.
 - User lookup tái sử dụng Task.
 
@@ -470,7 +473,8 @@ Route
     -> Request
     -> Controller
     -> SocialLoginAction
-    -> GetSocialAuthProviderInstanceSubAction
+    -> SocialLoginTask
+    -> Provider resolver Task/service
     -> SocialAuthProvider contract
     -> concrete provider
     -> Find/Create/Update Tasks
@@ -490,10 +494,10 @@ Contract
 Patterns:
 
 - Explicit config map: provider name đến provider class.
-- SubAction chọn strategy từ allowlist.
+- Main Task chọn provider strategy từ allowlist hoặc gọi provider resolver Task/service.
 - Unsupported provider có domain exception.
-- Action điều phối full social login use case.
-- Task xử lý lookup, create/update và token issuance.
+- Action chỉ chuẩn hóa input và gọi đúng một Social Login main Task.
+- Main Task điều phối lookup, create/update, token issuance và các child Tasks.
 - Tái sử dụng `CreateUserByCredentialsTask` từ Authentication.
 - Provider adapter dùng stateless authentication.
 - Dữ liệu ngoài như avatar URL được kiểm tra trước khi persist.
@@ -506,7 +510,7 @@ Tư duy:
 - Provider khác biệt chỉ override phần khác biệt.
 - Token issuance là capability riêng.
 
-Evidence:
+Existing repo evidence (the SubAction path is an existing pattern, not the target for new flows):
 
 - `SocialAuth/Contracts/SocialAuthProvider.php`
 - `SocialAuth/Abstracts/SocialAuthProvider.php`
@@ -524,14 +528,14 @@ Evidence:
 | OAuth payload enrichment | Action |
 | Gọi Passport token endpoint | Task |
 | Tạo refresh cookie | Task |
-| Revoke current token | Action hoặc dedicated Task theo pattern gần nhất |
+| Revoke current token | Dedicated Task |
 | Revoke all-device tokens | Domain method/Task có tên explicit |
-| Chọn social provider | SubAction |
+| Chọn social provider | Provider resolver Task/service |
 | Provider-specific OAuth call | Provider adapter |
 | Find/create/update social User | Tasks |
 | Public User response | Transformer |
 | User active state | Model/source of truth và auth middleware |
-| Generate & verify OTP | Actions & Tasks |
+| Generate & verify OTP | Action input boundary + main Tasks |
 
 ## 7.16. OTP Generation & Verification Patterns
 
@@ -548,7 +552,7 @@ Patterns:
 - **Reuse Unapproved Record**: Sử dụng `updateOrCreate` cập nhật bản ghi chưa `approve` thay vì spam tạo nhiều dòng rác trong DB.
 - **Single-Use Token (Chống Replay)**: Cập nhật `approve = true` ngay khi xác minh thành công để ngăn chặn việc dùng lại 1 mã OTP nhiều lần.
 - **Auto-verify Identity**: Tự động kích hoạt `$user->markEmailAsVerified()` khi xác minh thành công với luồng verify account.
-- **Transaction Safety**: Bọc `CreateOtpTask` trong DB transaction để rollback khi gửi mail/tạo OTP bị sự cố.
+- **Transaction Safety**: `CreateOtpTask` tự sở hữu transaction cho OTP/database writes. Gửi mail/notification chạy after-commit; lỗi delivery không thể rollback database đã commit và phải có retry/idempotency riêng.
 
 ## 7.17. Tư duy senior khi thiết kế Authentication
 
@@ -613,11 +617,11 @@ Các nguyên tắc:
 | Hardcode email login ở nhiều nơi | Config-driven login attributes |
 | Cho frontend gửi Passport client secret | Backend proxy enriches server-owned fields |
 | Gọi `/oauth/token` lặp trong nhiều Actions | Một OAuth Task dùng chung |
-| Controller tự revoke token | Thin Controller, use case ở Action/Task |
+| Controller/Action tự revoke token | Thin Controller/Action, use case ở Task |
 | Logout method tên mơ hồ | Tên thể hiện current/all-device scope |
 | Trả khác nhau khi email reset không tồn tại | Một public no-content contract |
 | Nhận arbitrary callback URL | `Rule::in()` với config allowlist |
-| `if provider === ...` trong Controller | Contract + class map + SubAction |
+| `if provider === ...` trong Controller/Action | Contract + class map + provider resolver Task/service |
 | Duplicate password rules | User model source of truth |
 | Trả raw User/token internals | Transformer và explicit token response |
 

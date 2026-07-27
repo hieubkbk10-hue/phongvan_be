@@ -18,14 +18,20 @@ Task ghi nhiều bước phải có transaction:
 beginTransaction
 -> validate domain state
 -> mutate model/relation/log/history
--> dispatch side effects có kiểm soát
+-> ghi outbox/core event record nếu thuộc atomic boundary
 -> commit
+-> dispatch external side effects after-commit
 catch -> rollBack -> throw Ship exception đúng intent
 ```
 
 Rule:
 
-- `rollBack()` phải chạy trước `throw`.
+- Với `DB::transaction()`, để exception thoát khỏi callback để Laravel tự rollback.
+- Chỉ gọi `rollBack()` trước khi rethrow khi Task tự quản lý `beginTransaction()/commit()/rollBack()`.
+- Main Task được gọi transactional child Tasks; Laravel dùng savepoint khi cùng connection/driver hỗ trợ.
+- Inner commit không phải commit độc lập; outer transaction vẫn có thể rollback toàn bộ.
+- Exception cần rollback phải propagate tới outermost transaction Task, không catch-and-swallow hoặc đổi thành success result.
+- Deadlock retry đặt tại outermost transaction owner.
 - Create/Update/Delete Task nên throw đúng nhóm `CreateResourceFailedException`, `UpdateResourceFailedException`, `DeleteResourceFailedException`.
 - Không nuốt lỗi core workflow.
 - Chỉ swallow/log lỗi side effect không bắt buộc như realtime/notification, và phải biết lỗi đó không rollback nghiệp vụ.
@@ -42,8 +48,8 @@ Side effect trong repo gồm:
 
 Rule:
 
-- Đừng mặc định Event là queued. Realtime event có thể gửi ngay trong constructor.
-- Nếu side effect phụ thuộc DB đã commit, ưu tiên `afterCommit()` hoặc dispatch sau commit.
+- Event chỉ là data carrier; không gửi realtime/external I/O ngay trong constructor.
+- Mail, notification, realtime, FCM, file và external I/O bắt buộc chạy after-commit/outbox với retry/idempotency.
 - Khi đổi create/update/delete, kiểm tra cả realtime event, notification listener và purge job.
 - External side effect fail không nên làm hỏng core state nếu business không yêu cầu.
 

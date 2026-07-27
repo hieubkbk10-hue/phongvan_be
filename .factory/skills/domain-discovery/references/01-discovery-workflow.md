@@ -163,7 +163,7 @@ Phân loại:
 - Laravel Event như implementation mechanism.
 - Notification, realtime, email, file, analytics, search index và integration.
 
-Ghi effect nào cần cùng transaction, effect nào chỉ chạy after commit, delivery guarantee mong muốn, retry, deduplication và reconciliation. “Dispatch thành công” không đồng nghĩa người nhận đã nhận.
+Ghi core/durable record nào cần cùng transaction. Notification, realtime, email, file, analytics, search index và integration luôn chạy after-commit/outbox; chốt delivery guarantee, retry, deduplication và reconciliation. “Dispatch thành công” không đồng nghĩa người nhận đã nhận.
 
 **Exit:** Side-effect matrix có consistency expectation và failure owner.
 

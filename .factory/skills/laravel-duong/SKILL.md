@@ -55,8 +55,8 @@ Mục tiêu: giữ đúng trách nhiệm từng layer:
 - Route chỉ khai báo endpoint.
 - Request validate input và access.
 - Controller mỏng.
-- Action điều phối use case.
-- Task xử lý business/database.
+- Action chỉ chuẩn hóa input và gọi đúng một main Task.
+- Task xử lý business/database, điều phối child Tasks và sở hữu transaction.
 - Repository quản lý query/filter.
 - Transformer quản lý output API.
 
@@ -103,13 +103,13 @@ Mục tiêu:
 
 ## Model event / `booted()` policy của repo này
 
-- Ưu tiên dùng Model event trong `booted()` cho các side effect gọn (như cleanup file, pivot, log) thay vì tạo Observer class riêng để đảm bảo tính đóng gói (co-location) và tránh phát sinh file rác.
+- Dùng Model event trong `booted()` cho invariant/callback phải áp dụng trên mọi lifecycle path; không thực hiện external side effect trực tiếp.
 - `booted()` chỉ dùng để đăng ký Eloquent model callbacks/global scopes, không phải nơi chạy use case chính mỗi lần gọi model.
-- Chỉ đặt callback trong model khi side effect phải áp dụng cho mọi lifecycle path của entity, ví dụ cascade soft delete/restore, cleanup file/pivot/log, field suy ra khi status đổi, hoặc notify nhỏ gắn chặt với create/delete.
-- Không đặt logic cần context request, quyền endpoint, transaction workflow lớn, hoặc chỉ đúng cho một API cụ thể vào model event. Các logic đó thuộc Action/Task.
-- Laravel tự fire callbacks như `created`, `updated`, `deleted`, `restored` khi thao tác qua Eloquent. Custom domain events của repo, ví dụ `DeleteUserEvent`, `UpdateBoardEvent`, vẫn phải dispatch thủ công trong callback hoặc Task, trừ khi có `$dispatchesEvents` rõ ràng.
+- Chỉ đặt callback trong model khi invariant phải áp dụng cho mọi lifecycle path, ví dụ cascade DB soft delete/restore, pivot/log nội bộ hoặc field suy ra khi status đổi.
+- Không đặt logic cần context request, quyền endpoint, transaction workflow lớn, hoặc chỉ đúng cho một API cụ thể vào model event. Action chỉ chuẩn hóa input và gọi một Task; workflow và transaction thuộc Task.
+- Laravel tự fire callbacks như `created`, `updated`, `deleted`, `restored` khi thao tác qua Eloquent. External event/job chỉ được đăng ký after-commit/outbox từ callback hoặc Task.
 - Khi update nội bộ trong model event, dùng `updateQuietly()`/`saveQuietly()` để tránh loop event và tránh bắn side effect ngoài ý muốn.
-- Nếu side effect phụ thuộc dữ liệu đã commit, dùng `afterCommit()` hoặc dispatch sau commit để tránh ghost notification/realtime khi transaction rollback.
+- Mail, notification, realtime, file và external I/O bắt buộc chạy after-commit/outbox với retry/idempotency.
 
 ## Nguyên tắc lõi
 
@@ -119,7 +119,9 @@ Mục tiêu:
 - `Ship Parent first`
 - `Request as endpoint contract`
 - `Thin Controller`
-- `Action Task flow`
+- `One Action -> One Task`
+- `Task-owned transaction`
+- `Task cross-container reuse`
 - `Repository Criteria`
 - `Transformer response`
 - `Server-owned credentials`

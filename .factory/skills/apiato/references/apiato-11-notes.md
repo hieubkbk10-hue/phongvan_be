@@ -78,14 +78,17 @@ Create/update request reminder:
 - Use `required` for create, `sometimes` for partial update.
 - Decode IDs before `exists:*` validation.
 
-## Action details
+## Repo override: Action details
 
-- Action is orchestration, not query layer.
+Official Apiato 11.x allows Action orchestration, SubActions, and `transactionalRun()`. The rules below are the stricter convention of this repository.
+
+- Action is an endpoint-specific input boundary, not a reusable orchestration or query layer.
 - Action may receive Request object.
 - Create/update Actions should usually call `$request->sanitizeInput([...])`.
-- Use transaction at Action level when multiple DB write Tasks are involved.
-- Transaction belongs to the use case orchestration layer. Do not push a cross-task workflow transaction down into a Task.
-- Throw HTTP-friendly exceptions.
+- Action must call exactly one main Task.
+- Do not call SubAction, another Action, a second Task, Repository/Model, or transaction APIs from Action.
+- Do not share Actions across Containers. Share the owning Container's Task.
+- Official Apiato supports Action `transactionalRun()`, but this repo explicitly does not use it.
 
 Example:
 
@@ -98,21 +101,25 @@ $sanitizedData = $request->sanitizeInput([
 return app(UpdateUserTask::class)->run($sanitizedData, $request->id);
 ```
 
-## Task details
+## Repo override: Task details
 
-Five practical rules:
+Practical rules:
 
-1. Single responsibility.
+1. Represent a coherent reusable business capability.
 2. Do not accept Request object.
 3. Do not call Action.
 4. Use Repository for data access.
 5. Catch low-level failures and throw standard exceptions.
+6. A main Task may call child Tasks, including cross-Container Tasks.
 
 Transaction note:
 
-- Task can be called from many Actions. A broad transaction inside a Task can accidentally wrap the wrong scope when reused.
-- Keep multi-step business consistency in Action.
-- Only use Task-local transaction for a single atomic low-level operation that is fully owned by that Task.
+- Transaction is part of the guarantee of a reusable Task capability.
+- A Task with dependent writes owns its transaction; read-only Tasks do not need one.
+- Nested Task transactions are allowed on the same connection when savepoints are supported.
+- Inner commit is not durable while an outer transaction remains active.
+- Exceptions that require rollback must propagate to the outermost transaction Task; never catch-and-swallow them.
+- Put deadlock retry at the outermost transaction owner and run external side effects only through after-commit/outbox with retry and idempotency.
 
 CRUD patterns:
 
@@ -206,29 +213,35 @@ Use events for side effects that should be decoupled from the main use case:
 - webhook/third-party integration
 - search indexing
 
-Avoid events/listeners for required core state changes that must be completed synchronously as part of the transaction. Those belong in Action + Task orchestration.
+Avoid events/listeners for required core state changes that must be completed synchronously as part of the transaction. Those belong in the main Task and its child Tasks.
 
 ### Where to dispatch
 
 Apiato docs say events can be fired from Actions or Tasks and recommend choosing one place. Practical production rule:
 
-- If a single Task owns the state change and no broad transaction is involved, dispatching from the Task after successful repository write is acceptable.
-- If an Action orchestrates multiple write Tasks or owns a transaction, dispatch after the transaction succeeds, at Action level.
-- If queued listener depends on committed DB data, set `$afterCommit = true` on the listener or ensure queue connection `after_commit` is enabled.
+- Dispatch domain events from the Task that owns the state change.
+- If a main Task owns a transaction or calls nested transactional Tasks, dispatch only after the outermost transaction succeeds.
+- External listeners/jobs must use `$afterCommit = true`, queue connection `after_commit`, or transactional outbox with retry/idempotency.
 
-Example Action-level after transaction:
+Example Task-owned transaction:
 
 ```php
-$order = DB::transaction(function () use ($request) {
-    $order = app(CreateOrderTask::class)->run($request->sanitizeInput([...]));
-    app(DeductWalletTask::class)->run($order->user_id, $order->total);
+class PayOrderTask extends ParentTask
+{
+    public function run(array $data): Order
+    {
+        $order = DB::transaction(function () use ($data) {
+            $order = app(CreateOrderTask::class)->run($data);
+            app(DeductWalletTask::class)->run($order->user_id, $order->total);
 
-    return $order;
-});
+            return $order;
+        });
 
-OrderPaidEvent::dispatch($order->id);
+        OrderPaidEvent::dispatch($order->id);
 
-return $order;
+        return $order;
+    }
+}
 ```
 
 ### Event shape
@@ -365,9 +378,10 @@ public array $serviceProviders = [
 ### Porto layers
 
 - Controller thin.
-- Action orchestrates.
-- Transaction in Action for multi-write workflows.
-- Task atomic.
+- Action sanitizes/enriches input and calls exactly one main Task.
+- Action does not call SubAction or own a transaction.
+- Task is the reusable business capability and transaction owner for dependent writes.
+- Main Task may call child Tasks; nested exceptions propagate to the outermost transaction.
 - Repository data access.
 - Transformer response.
 - Event/Listener for side effects only.

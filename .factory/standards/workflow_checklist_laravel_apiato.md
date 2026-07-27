@@ -50,15 +50,17 @@ Ví dụ cực gọn:
 
 - Flow: Route -> Controller -> Request -> Action -> Task -> Repository/Model -> Transformer.
 - Controller mỏng: Chỉ nhận Request, gọi duy nhất 1 Action và trả về response.
-- Action điều phối:
-  - Chỉ chứa logic điều phối luồng nghiệp vụ.
-  - Không truy vấn DB trực tiếp. Bắt buộc dùng `DB::transaction()` nếu có nhiều bước ghi dữ liệu.
-- Task một nhiệm vụ (Single Responsibility - SRP):
-  - Phân rã rõ ràng và tạo đầy đủ tất cả các Task nhỏ hỗ trợ (ví dụ: tạo riêng `CreateCustomerTask`, `FindProductByIdTask`, `UpdateProductStockTask`, `CreateOrderItemTask`...) thay vì gộp chung vào 1 Task lớn.
-  - Đảm bảo tạo đủ tất cả các Task liên quan trước khi triển khai Action để đảm bảo tính tái sử dụng cao nhất.
+- Action là endpoint boundary:
+  - Chỉ nhận Request, `sanitizeInput()`/map/enrich input và gọi đúng một Task chính.
+  - Không gọi nhiều Task, SubAction, Action khác, Repository/Model hoặc transaction.
+- Task là reusable business capability:
+  - Task chính giữ orchestration nghiệp vụ và được phép gọi các Task con, kể cả Task thuộc Container khác.
+  - Task ghi nhiều bước phải tự sở hữu transaction; Task chỉ đọc không cần transaction.
+  - Nested transaction được phép khi cùng connection/driver hỗ trợ savepoint và exception không bị nuốt.
+  - Inner commit không độc lập; exception phải propagate để transaction ngoài cùng rollback toàn bộ consistency boundary.
 
 - Repository data access.
-- Tái sử dụng Task/Action có sẵn.
+- Tái sử dụng Task có sẵn; không dùng Action làm dependency xuyên Container.
 - Không query DB trong Controller.
 
 ## 5. Query / Performance

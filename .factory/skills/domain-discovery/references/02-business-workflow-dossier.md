@@ -120,8 +120,8 @@ Không tự suy diễn legal basis, retention duration, identifier release hoặ
 
 | Effect | Business purpose | Trigger | Same transaction? | After commit? | Delivery expectation | Retry/dedup | Reconciliation/owner |
 |---|---|---|---|---|---|---|---|
-| Core write |  |  | Yes/No | No | Atomic result |  |  |
-| Notification/realtime/email/integration |  |  | Thường No | Decision | At-most/at-least/exactly-once effect expectation |  |  |
+| Core write/durable outbox intent |  |  | Yes | No | Atomic result |  |  |
+| Notification/realtime/email/file/integration |  |  | No | Yes | At-most/at-least/exactly-once effect expectation | Required | Required |
 
 Phân biệt domain event với Laravel Event. Không tuyên bố “delivered” chỉ vì đã dispatch.
 

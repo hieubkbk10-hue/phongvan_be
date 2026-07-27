@@ -29,8 +29,8 @@ Route -> Controller -> Request -> Action -> Task -> Repository/Model -> Transfor
 ```
 
 - Controller mỏng, chỉ nhận Request, gọi Action, trả response/Transformer.
-- Action điều phối use case.
-- Task chứa một bước nhỏ, query/mutation hoặc logic tái sử dụng.
+- Action chỉ `sanitizeInput()`/map/enrich input và gọi đúng một main Task.
+- Task là reusable business capability; main Task được điều phối child Tasks và sở hữu transaction.
 - Repository/Model xử lý data access theo pattern hiện có.
 - Transformer định dạng response JSON.
 
@@ -40,6 +40,8 @@ Route -> Controller -> Request -> Action -> Task -> Repository/Model -> Transfor
 - Tên: `{Verb}{Resource}Action.php`.
 - Class extend `ParentAction`.
 - Method chính: `run()`.
+- Chỉ gọi đúng một main Task; không gọi SubAction, Action khác, Repository/Model hoặc transaction.
+- Không tái sử dụng Action xuyên Container.
 
 Ví dụ:
 
@@ -58,6 +60,8 @@ SyncUserRolesAction.php
 - Tên: `{Verb}{Resource}Task.php`.
 - Class extend `ParentTask`.
 - Method chính: `run()`.
+- Được tái sử dụng xuyên Container và được gọi child Tasks.
+- Task có dependent writes tự sở hữu transaction; nested transaction phải propagate exception tới outermost owner.
 
 Ví dụ:
 

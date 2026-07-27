@@ -127,8 +127,8 @@ Rule:
 
 Rule:
 
-- Mail, notification, realtime, FCM, delete file nên chạy sau commit nếu phụ thuộc DB.
-- Nếu event gửi trong transaction, kiểm tra rollback risk.
+- Mail, notification, realtime, FCM, delete file và external I/O bắt buộc chạy after-commit/outbox với retry/idempotency.
+- Không gửi external event trong transaction hoặc constructor.
 - Realtime payload phải ổn định shape và không leak secret/internal fields.
 - Notification data denormalized phải update/delete khi entity đổi tên hoặc bị xóa.
 

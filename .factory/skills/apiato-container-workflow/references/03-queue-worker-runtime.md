@@ -8,7 +8,7 @@ Phân loại trước:
 
 | Loại | Chạy ở đâu |
 | --- | --- |
-| Core write phải nhất quán ngay | Action/Task trong transaction |
+| Core write phải nhất quán ngay | Main Task trong transaction |
 | Side effect có thể eventual consistency | Queued Listener/Job sau commit |
 | External I/O, mail, push, webhook, thumbnail | Queue riêng phù hợp |
 | Recurrence/purge/import định kỳ | Scheduler dispatch Job |
@@ -23,7 +23,7 @@ Không đưa core write bắt buộc vào queued Listener sau khi endpoint đã 
 4. Tạo Job extends Ship Parent Job.
 5. Job nhận scalar ID/UUID hoặc immutable DTO nhỏ.
 6. Chọn missing-model policy.
-7. Tạo Task/Action mà Job gọi.
+7. Tạo Task/service mà Job gọi; không tái sử dụng endpoint Action.
 8. Thiết kế idempotency.
 9. Khai báo queue routing.
 10. Khai báo retries/failure policy.
@@ -79,7 +79,8 @@ Test Job chạy hai lần.
 ## 5. Transaction và dispatch
 
 ```txt
-Action/Task transaction
+Main Task transaction
+-> nested child Tasks nếu cần
 -> core writes
 -> commit
 -> Event/Job/Notification afterCommit

@@ -105,22 +105,25 @@ php artisan migrate
 
 ### 10. Task
 
-1. Tạo Task nhỏ cho từng thao tác.
+1. Tạo một Task chính đại diện cho business capability của endpoint.
 2. Task nhận scalar/array, không nhận Request.
 3. Query và mutation qua Repository.
-4. List dùng criteria, scope quyền, eager load và paginate `(optional)`.
-5. Tạo Task xử lý file/media `(optional)`.
-6. Tạo Task ghi log/history/snapshot `(optional)`.
+4. Task chính được gọi các Task con, kể cả Task thuộc Container khác `(optional)`.
+5. Task ghi nhiều bước tự sở hữu transaction; Task chỉ đọc không cần transaction.
+6. Nested transaction được phép khi cùng connection/driver hỗ trợ savepoint; không nuốt exception cần rollback.
+7. List dùng criteria, scope quyền, eager load và paginate `(optional)`.
+8. Tạo Task xử lý file/media `(optional)`.
+9. Tạo Task ghi log/history/snapshot `(optional)`.
+10. Dispatch external side effect after-commit/outbox `(optional)`.
 
 ### 11. Action
 
 1. Nhận Request.
 2. Dùng `sanitizeInput()`.
 3. Bổ sung dữ liệu do server quản lý.
-4. Điều phối Task/SubAction.
-5. Thêm transaction cho workflow ghi nhiều bảng `(optional)`.
-6. Rollback toàn bộ core write khi có lỗi `(optional)`.
-7. Chỉ dispatch side effect sau khi core write thành công `(optional)`.
+4. Gọi đúng một Task chính.
+5. Không gọi nhiều Task, SubAction, Action khác, Repository/Model hoặc transaction.
+6. Không dùng Action làm dependency tái sử dụng xuyên Container.
 
 ### 12. Request
 
@@ -169,16 +172,16 @@ php artisan migrate
 
 1. Xác định thời điểm phát sinh event và payload tối thiểu.
 2. Tạo Event.
-3. Tạo Task/Action xử lý side effect.
+3. Tạo Task/service xử lý side effect; không tái sử dụng endpoint Action.
 4. Tạo Notification `(optional)`.
 5. Tạo Job cho tác vụ chậm hoặc bên ngoài hệ thống `(optional)`.
 6. Tạo Listener.
-7. Listener gọi Task/Action, Notification hoặc dispatch Job.
-8. Đặt queue, retry, idempotent và `$afterCommit = true` `(optional)`.
+7. Listener gọi Task/service, Notification hoặc dispatch Job.
+8. External side effect bắt buộc có queue/outbox, retry, idempotency và after-commit.
 9. Tạo `EventServiceProvider`.
 10. Đăng ký Event/Listener trong `EventServiceProvider`.
 11. Đăng ký `EventServiceProvider` trong `MainServiceProvider`.
-12. Dispatch Event sau commit trong Action.
+12. Main Task đăng ký dispatch Event sau outermost commit hoặc ghi transactional outbox.
 13. Chỉ dispatch từ `booted()` khi side effect phải áp dụng cho mọi lifecycle path `(optional)`.
 
 ### 18. Tests

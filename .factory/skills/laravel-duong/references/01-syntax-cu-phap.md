@@ -302,7 +302,7 @@ return $this->belongsToMany(User::class, WorkspaceUser::getTableName(), 'workspa
 
 **Hay (Custom Pivot Model):**
 * **Tự động ép kiểu:** Các thuộc tính bổ sung trên bảng pivot (như `main`, `active`) luôn được cast đúng kiểu logic.
-* **Đóng gói hành vi (Domain Encapsulation):** Cho phép lắng nghe Model Events và xử lý logic nghiệp vụ riêng (như tự động gửi mail khi join workspace) ngay tại Model Pivot.
+* **Đóng gói hành vi (Domain Encapsulation):** Cho phép lắng nghe Model Events cho invariant áp dụng trên mọi lifecycle path. Mail/notification không gửi trực tiếp trong callback; đăng ký after-commit hoặc dispatch Job/Listener có retry.
 * **Source of truth:** Tên bảng pivot được quản lý tập trung qua `WorkspaceUser::getTableName()`.
 
 **Rule viết `withPivot()` cho AI Agent:**

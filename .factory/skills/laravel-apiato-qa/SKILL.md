@@ -49,13 +49,13 @@ Route -> Request -> Controller -> Action -> Task -> Repository/Model -> Transfor
 - Route: có `@api`, đúng middleware, đúng method/URI.
 - Request: `$access`, `$decode`, `$urlParameters`, validation caps, authorization.
 - Controller: mỏng, không query, không business logic.
-- Action: dùng `sanitizeInput()`, không `$request->all()`.
-- Task: transaction, domain permission, Repository, relation sync, log/history, side effect order.
+- Action: dùng `sanitizeInput()`, gọi đúng một main Task; không SubAction, Action khác, Repository/Model hoặc transaction.
+- Task: reusable capability, child Task orchestration, transaction, domain permission, Repository, relation sync, log/history, side effect order.
 - Repository: `$fieldSearchable` đúng schema, filter ở DB, paginate.
 - Model: Ship Parent, fillable/casts/relation, `canView/canEdit/canDelete`, event side effects.
 - Transformer: hash id, no secrets, includes an toàn, không N+1.
 - Migration: FK/index/soft delete/json cast/delete behavior.
-- Event/Listener/Job: after commit nếu cần, chunk, idempotent, cleanup.
+- Event/Listener/Job: external side effect bắt buộc after-commit/outbox, retry và idempotent.
 - Aggregate/Container: model chính có container riêng, child/pivot/log/snapshot nằm đúng aggregate.
 - Snapshot/Data preservation: dữ liệu lịch sử không phụ thuộc FK live.
 - Business pushback: yêu cầu gây mất dữ liệu, leak quyền, N+1 hoặc bill DB cao phải được phản biện.
@@ -113,9 +113,12 @@ Không báo issue mơ hồ. Nếu chỉ là style nhỏ, ghi `Low` hoặc bỏ q
 
 - Hash response id: repo ưu tiên `$model->getHashedKey()`, không tự đổi sang `$this->encode()` nếu file hiện tại không dùng.
 - Authorization: Request `$access` chưa đủ, Task/Model phải check domain permission bằng `canView/canEdit/canDelete`.
-- Transaction: repo hiện dùng transaction ở Task cho multi-step writes, match pattern hiện tại.
+- Action boundary: mỗi endpoint Action chỉ được gọi một main Task và không được tái sử dụng xuyên Container.
+- Transaction: chỉ Task sở hữu transaction; Task chỉ đọc không cần transaction.
+- Nested transaction: cho phép trên cùng connection/driver hỗ trợ savepoint; inner commit không độc lập và exception phải propagate tới outermost transaction Task.
+- Reject `transactionalRun()` ở Controller/Action, `DB::transaction()`/manual transaction trong Action, và catch-and-swallow core exception trong Task.
 - Storage/CDN: code nghiệp vụ nên dùng helper `cdn_url()`, `cdn_upload()`, `cdn_delete()`, `storage_url()`.
-- Realtime event có thể gửi ngay trong constructor, luôn audit thứ tự với `DB::commit()`.
+- Realtime/external event không gửi trong constructor; bắt buộc after-commit/outbox với retry/idempotency.
 - `.private.php` không đủ để kết luận endpoint có auth, phải đọc route middleware.
 - “1 model = 1 container” hiểu là model chính có nghiệp vụ độc lập. `WorkFile`, `WorkLog`, `WorkHistory`, pivot, like/viewer nằm trong aggregate cha nếu không có lifecycle riêng.
 - SoftDelete chỉ dùng khi có restore/purge semantics rõ. Nếu parent soft delete child, phải có `deleted_by_*` để restore đúng nguyên nhân.

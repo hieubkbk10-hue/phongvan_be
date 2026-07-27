@@ -7,7 +7,7 @@ description: Use when reviewing or changing MySQL schema, indexes, Eloquent or Q
 
 ## Nguyên tắc
 
-Đo trước khi tối ưu. Giảm hàng và byte đọc/ghi nhưng giữ đúng invariant. Trong Apiato, đặt query/mutation tại Task hoặc Repository, orchestration tại Action, validation tại Request và schema trong migration.
+Đo trước khi tối ưu. Giảm hàng và byte đọc/ghi nhưng giữ đúng invariant. Trong Apiato của repo này, Action chỉ chuẩn hóa input và gọi đúng một main Task; orchestration/transaction thuộc Task, query/mutation tại Task hoặc Repository, validation tại Request và schema trong migration.
 
 ## Khi dùng
 

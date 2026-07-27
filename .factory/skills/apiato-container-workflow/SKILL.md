@@ -79,8 +79,8 @@ Contract
 -> migrate up/down/up
 -> Relations
 -> Repository/Factory
--> Tasks
--> Action/transaction
+-> Tasks/transaction
+-> Action
 -> Request
 -> Transformer
 -> Controller/Route
@@ -160,8 +160,8 @@ Trước khi trả workflow, kiểm tra:
 - Mọi symbol được dùng đã có bước tạo trước đó.
 - Relation chỉ xuất hiện sau hai đầu dependency.
 - Migration đã chốt snapshot, delete semantics, index và FK.
-- Core write nằm trong transaction phù hợp.
-- Side effect phụ thuộc DB chạy sau commit.
+- Core write nằm trong transaction do Task sở hữu; Action không mở transaction.
+- External side effect chạy after-commit/outbox với retry/idempotency.
 - Queue có worker/runtime/deploy, không chỉ có Job class.
 - Tests bao phủ dependency closure và rollback.
 - Mỗi bước có prompt và giả định rõ trạng thái trước bước.

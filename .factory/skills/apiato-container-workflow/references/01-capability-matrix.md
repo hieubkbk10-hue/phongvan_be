@@ -30,13 +30,13 @@ Mục `(optional)` không có nghĩa được bỏ tùy ý. Khi trigger đúng, 
 | N+1 prevention | Collection/includes/permission/statistics/realtime many recipients | Trace Task → Model methods → Transformer → preload/withCount/withExists → `relationLoaded()` → query-count test |
 | Factory | Tests/seeder cần fixture | Factory fields hợp lệ → states theo invariant → relations → factory test |
 | Seeder | Default data/permission/onboarding | Idempotent seed → config-aligned data → relation ordering → environment guard → rerun test |
-| Task decomposition | Use case có nhiều thao tác | Liệt kê atomic jobs → một Task/mục đích → scalar/array input → Repository → exceptions |
-| SubAction | Sub-use-case được nhiều Actions dùng | Tách orchestration tái sử dụng → gọi Tasks → không thay Task cho một query đơn |
-| Transaction | Ghi nhiều bảng/sync pivot/file metadata/log/history | Chọn owner theo pattern repo → lock nếu race → core writes → commit → side effects → rollback trước throw |
+| Task decomposition | Use case có nhiều thao tác | Một main Task/capability → liệt kê child Tasks → scalar/array input → Repository → exceptions |
+| SubAction | Code hiện hữu đã có SubAction | Không tạo mới cho endpoint flow; chuyển reusable orchestration sang main Task khi scope cho phép |
+| Transaction | Ghi nhiều bảng/sync pivot/file metadata/log/history | Task là owner → nested Task transaction được phép → lock nếu race → core writes → commit → side effects after commit → exception propagate |
 | Concurrency/locking | Limit, stock, balance, primary, reorder | Chọn lock owner/unique constraint → kiểm tra invariant trong transaction → concurrent tests |
-| Storage/media | Upload/replace/delete file | Config MIME/size/count → validate → server-owned path → store → DB transaction → compensate orphan → URL helper → cleanup |
+| Storage/media | Upload/replace/delete file | Config MIME/size/count → validate → transaction ghi metadata/intent → commit → after-commit Job/store/delete → idempotency/reconciliation → URL helper |
 | Event | Domain state change cần reaction | Chọn dispatch point → minimal immutable payload → dispatch sau successful state change → event test |
-| Listener | Reaction tách khỏi core use case | Một side effect → Task/Action call → idempotent → queue/afterCommit nếu external → provider registration |
+| Listener | Reaction tách khỏi core use case | Một side effect → Task/service call → external delivery queued afterCommit/outbox → retry/idempotent → provider registration |
 | Notification/mail | Gửi thông báo | Recipients/visibility → snapshot payload → queued delivery → afterCommit → dedup → Notification/Mail fake |
 | Job/queue | Slow/external/eventual side effect | Xem `03-queue-worker-runtime.md` → payload ID/DTO → idempotency → retry/failure → queue routing → worker/deploy |
 | Scheduler | Recurrence/purge/import polling | Command/Job → chunk → withoutOverlapping → onOneServer nếu multi-node → cron runtime → duplicate tests |

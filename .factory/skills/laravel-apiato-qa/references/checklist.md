@@ -8,8 +8,14 @@ Checklist này dùng cho QA/code review repo Laravel 9, Apiato, Porto này.
 - [ ] API Request không dùng raw `Illuminate\Http\Request`.
 - [ ] Controller mỏng: Request -> một Action -> response/Transformer.
 - [ ] Không query DB hoặc viết business logic trong Controller/Route.
-- [ ] Action dùng `$request->sanitizeInput([...])`, không `$request->all()`.
-- [ ] Task ghi nhiều bước có transaction và `rollBack()` trước khi throw.
+- [ ] Action dùng `$request->sanitizeInput([...])`, không `$request->all()`, và gọi đúng một main Task.
+- [ ] Action không gọi nhiều Task, SubAction, Action khác, Repository/Model hoặc transaction.
+- [ ] Action không được dùng làm dependency tái sử dụng xuyên Container.
+- [ ] Task ghi nhiều bước có transaction; `DB::transaction()` để exception tự rollback, manual transaction phải `rollBack()` trước khi rethrow.
+- [ ] Main Task được gọi child Tasks, kể cả Task xuyên Container; Task không gọi Action.
+- [ ] Nested transaction dùng cùng connection/savepoint; inner commit không được xem là commit độc lập.
+- [ ] Exception cần rollback propagate tới outermost transaction Task, không catch-and-swallow.
+- [ ] Không dùng `transactionalRun()` ở Controller/Action hoặc transaction API trong Action.
 - [ ] Mọi mutation theo `id/ids` có `canView/canEdit/canDelete` hoặc scope quyền tương đương.
 - [ ] Không có IDOR: `Rule::exists()` không thay cho ownership check.
 
@@ -19,7 +25,7 @@ Checklist này dùng cho QA/code review repo Laravel 9, Apiato, Porto này.
 - [ ] Route middleware khớp visibility, không đoán theo `.private.php`.
 - [ ] Request có `$access`, `$decode`, `$urlParameters` khi cần.
 - [ ] Update Request cho partial update không vô tình require field không đổi.
-- [ ] Action chỉ normalize/enrich input và gọi Task.
+- [ ] Action chỉ normalize/enrich input và gọi đúng một main Task.
 - [ ] Task không nhận Request object.
 - [ ] Repository xử lý data access/query surface.
 - [ ] Transformer là public response contract.
@@ -65,7 +71,7 @@ Checklist này dùng cho QA/code review repo Laravel 9, Apiato, Porto này.
 ## 6. Side effect và lifecycle
 
 - [ ] Realtime recipients đúng public/private/hidden.
-- [ ] Mail/notification/realtime/FCM chạy sau commit nếu phụ thuộc DB.
+- [ ] Mail/notification/realtime/FCM/file/external I/O bắt buộc chạy after-commit/outbox với retry/idempotency.
 - [ ] Notification payload denormalized được update/delete khi entity đổi/xóa.
 - [ ] Delete/restore dùng `deleted_by_*` flag đúng cấp.
 - [ ] Force delete/purge cleanup file/media.
@@ -74,7 +80,7 @@ Checklist này dùng cho QA/code review repo Laravel 9, Apiato, Porto này.
 - [ ] Event extends Ship Parent Event, Listener extends Ship Parent Listener.
 - [ ] Listener dùng `subscribe()` và container `EventServiceProvider` register `$subscribe`.
 - [ ] Container `MainServiceProvider` register `EventServiceProvider::class` khi thêm provider mới.
-- [ ] Listener/Job slow hoặc external idempotent, queued nếu cần, có `afterCommit` khi phụ thuộc DB commit.
+- [ ] Listener/Job external phải idempotent, queued và `afterCommit` hoặc dùng transactional outbox.
 - [ ] Soft delete cascade dùng chunk và restore đúng child bị xóa bởi parent action, không restore nhầm child user tự xóa.
 
 ## 7. Storage/CDN
@@ -114,7 +120,7 @@ Checklist này dùng cho QA/code review repo Laravel 9, Apiato, Porto này.
 - [ ] Child model sống chết theo root nằm trong container cha.
 - [ ] Pivot có role/active/main/event dùng custom Pivot model, không nhất thiết tách container.
 - [ ] Log/history/file/review item nằm đúng aggregate, không đẩy bừa vào Ship.
-- [ ] Cross-container write dùng Action/Task/event/listener rõ, không query chéo âm thầm quá nhiều.
+- [ ] Cross-container write tái sử dụng Task của Container sở hữu; không gọi endpoint Action hoặc query chéo âm thầm.
 - [ ] Aggregate root có transaction khi create/update/delete ghi nhiều bảng.
 - [ ] Delete/restore/force delete của root xử lý đủ child, file, notification/realtime, snapshot policy.
 

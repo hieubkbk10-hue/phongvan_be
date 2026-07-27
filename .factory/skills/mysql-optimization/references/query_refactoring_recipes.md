@@ -63,7 +63,7 @@ Order::query()
     ->where('status', 'pending')
     ->chunkById(500, function ($orders): void {
         foreach ($orders as $order) {
-            // Gọi Action/Task phù hợp nếu mỗi hàng có invariant nghiệp vụ riêng.
+            // Gọi Task phù hợp nếu mỗi hàng có invariant nghiệp vụ riêng.
         }
     });
 ```

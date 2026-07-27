@@ -14,10 +14,10 @@ Use Apiato as Laravel plus Porto architecture: business code belongs in Containe
 Core flow:
 
 ```txt
-Route -> Controller -> Request -> Action -> SubAction -> Task -> Repository/Model -> Transformer
+Route -> Controller -> Request -> Action -> Task -> Repository/Model -> Transformer
 ```
 
-`SubAction` is optional. Use it only for reusable sub-use-cases that would otherwise make an Action too large or force a Task to orchestrate other Tasks.
+Official Apiato supports `SubAction` and Action-level `transactionalRun()`. This repo deliberately overrides both patterns: an Action calls exactly one main Task, and only Tasks own transactions.
 
 ## When to Use
 
@@ -42,7 +42,7 @@ Apiato 11.x docs are the baseline. This repo can be stricter. If they conflict, 
 | --- | --- | --- |
 | Controller shape | API Controller extends `App\Ship\Parents\Controllers\ApiController`; docs show `UI/API/Controllers/Controller.php` with methods | This repo may use one controller file per endpoint if existing container does. Match nearby code first |
 | Controller responsibility | Controller should only call Action `run()` and pass the Request object | Keep controller thin, no query or orchestration |
-| Transaction | `transactionalRun(...$arguments)` wraps Action `run()` and docs say it is commonly called from Controller | Multi-write workflow consistency must be explicit. Use `transactionalRun()` from Controller when fitting docs, or `DB::transaction()`/transactional orchestration at Action level when repo pattern already does that |
+| Transaction | `transactionalRun(...$arguments)` wraps Action `run()` and is supported by official Apiato | This repo is stricter: Controller/Action MUST NOT own transactions. Only Tasks own transactions; do not use `transactionalRun()` in endpoint flows |
 | Events | Events may fire from Actions or Tasks; docs recommend choosing one place and say Tasks are recommended | For multi-write workflows, dispatch only after successful state change, and use after-commit semantics for queued/external side effects |
 | Validators | Apiato docs do not define this repo's validators | Follow `AGENTS.md`: `composer validate --strict`, `vendor/bin/php-cs-fixer fix --config=php_cs.dist.php --dry-run --diff`, `vendor/bin/psalm --config=psalm.dist.xml`, `vendor/bin/phpunit` as relevant |
 
@@ -53,9 +53,9 @@ Apiato 11.x docs are the baseline. This repo can be stricter. If they conflict, 
 | Route | `UI/API/Routes` | n/a | File name `{ActionName}.v{n}.{public|private}.php`; private routes use auth middleware |
 | Controller | `UI/API/Controllers` | `App\Ship\Parents\Controllers\ApiController` | Accept Request, call Action, return response/Transformer |
 | Request | `UI/API/Requests` | `App\Ship\Parents\Requests\Request` | `rules(): array`, `authorize(): bool`, `$access`, `$decode`, `$urlParameters` |
-| Action | `Actions` | `App\Ship\Parents\Actions\Action` | Top-level use case orchestration |
-| SubAction | `Actions` | `App\Ship\Parents\Actions\SubAction` | Reusable sub-use-case orchestration |
-| Task | `Tasks` | `App\Ship\Parents\Tasks\Task` | One small reusable job, no Request object |
+| Action | `Actions` | `App\Ship\Parents\Actions\Action` | Endpoint boundary: sanitize/enrich input and call exactly one main Task |
+| SubAction | `Actions` | `App\Ship\Parents\Actions\SubAction` | Official Apiato component; do not introduce it into new endpoint flows in this repo |
+| Task | `Tasks` | `App\Ship\Parents\Tasks\Task` | Reusable business capability, transaction owner when it writes multiple steps |
 | Repository | `Data/Repositories` | `App\Ship\Parents\Repositories\Repository` | Data access and query parameter surface |
 | Model | `Models` | parent model used by repo | Table representation, fillable/casts/relationships |
 | Transformer | `UI/API/Transformers` | `App\Ship\Parents\Transformers\Transformer` | Public API shape, hashed IDs, includes |
@@ -74,9 +74,9 @@ Apiato is not classic MVC. Think in **business domains** and **single-responsibi
 - **Section** = group of related Containers. `AppSection` is Apiato's default section.
 - **Ship** = infrastructure and code shared across Containers.
 - **Model** = database table representation.
-- **Action** = one complete use case.
-- **SubAction** = reusable sub-use-case used by Actions or SubActions.
-- **Task** = one reusable small job.
+- **Action** = endpoint-specific input boundary that calls exactly one main Task.
+- **SubAction** = an official Apiato component, but this repo does not use it for new endpoint orchestration.
+- **Task** = reusable business capability; a main Task may orchestrate child Tasks and own the transaction.
 - **Repository** = data access adapter and query criteria surface.
 - **Transformer** = public JSON response shape.
 - **Event/Listener** = decouple side effects from core use case.
@@ -94,7 +94,7 @@ Container guidance:
 
 1. Identify resources/models, REST endpoints, payloads, response shape, permissions, and frontend states.
 2. Decide Container by business domain and match existing nearby code.
-3. Plan Action/SubAction/Task split before writing code.
+3. Plan the main Task and its child Task dependency tree before writing the thin Action.
 4. Treat production requirements as design inputs: indexes, pagination, authorization, validation caps, rollback, rate limits, query shape, and API docs.
 5. Add or update tests for success, validation failure, unauthorized, not found, and important edge cases.
 
@@ -102,9 +102,9 @@ Container guidance:
 
 - **Request is the gate**: validate, authorize, decode Hash IDs, cap strings, and cap list query params before Action.
 - **Controller stays thin**: pass Request to Action; do not query DB or orchestrate business logic.
-- **Action owns the use case**: it may call Tasks and SubActions, and may use `transactionalRun()`/transaction boundaries for multi-write workflows.
-- **SubAction is orchestration only**: use it to avoid God Actions, not as a substitute for Tasks.
-- **Task stays atomic**: one small reusable job, no Request object, no Action calls, no broad workflow transaction.
+- **Action is endpoint-specific**: sanitize/map/enrich input and call exactly one main Task. No SubAction, second Task, Action, Repository/Model, query, mutation, or transaction.
+- **SubAction is not a bypass**: do not introduce new SubActions into endpoint flows; reusable orchestration belongs in a main Task.
+- **Task is the reusable capability**: no Request object and no Action calls. A main Task may call child Tasks, including cross-Container Tasks, and owns the transaction required by its consistency boundary.
 - **Repository is the query contract**: expose only safe searchable fields through `$fieldSearchable`.
 - **Transformer is public contract**: return `getHashedKey()` IDs, hide internals/secrets, define includes before frontend uses them.
 - **List APIs paginate**: no unbounded `all()` or `get()` for user-facing lists.
@@ -163,41 +163,44 @@ Container guidance:
 
 - Keep thin.
 - API controller extends `App\Ship\Parents\Controllers\ApiController`; Web controller extends `App\Ship\Parents\Controllers\WebController`.
-- Accept Request, call Action `run()` or `transactionalRun()`, return response/Transformer.
+- Accept Request, call Action `run()`, return response/Transformer.
 - Prefer passing the whole Request object to Action, matching docs and repo patterns.
 - No DB query, no business orchestration.
 - Use response helpers such as `transform`, `withMeta`, `json`, `accepted`, `deleted`, and `noContent` when appropriate.
 
 ### Action
 
-- Orchestrates use case.
-- Bắt buộc lập kế hoạch và phân rã đầy đủ các Task cần thiết trước khi viết Action.
-- Calls Tasks and optionally SubActions. Điều phối qua Task/SubAction, không viết logic truy vấn DB hay xử lý Eloquent trực tiếp trong Action.
+- Endpoint boundary, not a reusable business capability.
 - May receive Request object.
-- For create/update, use `$request->sanitizeInput([...])`.
-- Use `transactionalRun(...$arguments)` where it fits Apiato docs. If repo pattern uses `DB::transaction()` inside Action, keep the transaction at use-case orchestration level.
-- Throw meaningful Apiato/Ship exceptions.
+- For create/update, use `$request->sanitizeInput([...])` and add server-owned fields.
+- Must call exactly one main Task.
+- Must not call SubAction, another Action, a second Task, Repository/Model, query/mutation code, `transactionalRun()`, `DB::transaction()`, or manual transaction methods.
+- Do not reuse Actions across Containers. Reuse the owning Container's Task instead.
+- Throw only input/endpoint exceptions that belong at this boundary; Task maps business/data failures.
 
 ### SubAction
 
 - Location: `Actions`.
 - Extends `App\Ship\Parents\Actions\SubAction`.
-- Use for reusable sub-use-cases with business orchestration.
-- Can call multiple Tasks and other SubActions.
-- Do not create SubAction for a single repository call. That belongs in a Task.
-- Do not expose SubAction as an endpoint-level use case. That belongs in an Action.
+- Apiato supports SubActions, but this repo's strict flow does not introduce them into new endpoint implementations.
+- Do not use SubAction to bypass the rule that an Action calls exactly one Task.
+- Move reusable orchestration to a main Task and reusable atomic capabilities to child Tasks.
+- Existing SubActions remain existing repo patterns. Do not extend or migrate them unless the requested scope explicitly includes that work.
 
 ### Task
 
-- One small job (Single Responsibility Principle - SRP).
+- Reusable business capability owned by its Container.
 - Extends `App\Ship\Parents\Tasks\Task`.
-- Phân rã triệt để: Khi thực hiện một luồng nghiệp vụ phức tạp, tạo Task nhỏ độc lập như tìm chi tiết, tạo mới, trừ kho, ghi log, thay vì gom nhiều logic khác nhau vào một Task.
 - Do not accept Request object.
 - Do not call Action.
-- Do not call Task from Task unless nearby repo code explicitly has that pattern and there is no cleaner SubAction.
+- A main Task may call child Tasks, including Tasks from other Containers.
+- Child Tasks should expose coherent reusable capabilities such as find, create, update stock, sync relation, or write history.
 - Use Repository for data access.
 - Catch DB/library failures and throw standard exceptions.
-- Do not start broad workflow transactions in Task. Only use local transaction in a Task for a truly atomic low-level data operation that cannot be split.
+- A Task that performs dependent writes owns its transaction. Read-only Tasks do not need a transaction.
+- Nested Task transactions are allowed on the same connection when the driver supports savepoints. Inner commit is not durable while an outer transaction remains open.
+- Never catch-and-swallow an exception that must roll back the consistency boundary. Let it propagate to the outermost transaction Task.
+- Put deadlock retry at the outermost transaction owner. Run external I/O, mail, files, queue publication, and webhooks only through after-commit/outbox with retry and idempotency.
 
 ### Repository
 
@@ -230,7 +233,7 @@ Container guidance:
 - Register event/listener mappings in a container EventServiceProvider, then register that provider in the container `MainServiceProvider`.
 - Apiato docs allow firing events from Actions or Tasks, recommend choosing one place, and mention Tasks as recommended. For production code:
   - Prefer firing domain events after the state change succeeds.
-  - If the Action owns a DB transaction, dispatch after the transaction commits or use queued listeners with `$afterCommit = true`.
+  - External delivery always runs after the outermost transaction commits or through a transactional outbox.
   - Do not dispatch side effects before a transaction can still roll back.
 - Use Events/Listeners for side effects:
   - notification/email/SMS
@@ -256,14 +259,14 @@ protected $fieldSearchable = [
 ];
 ```
 
-Docs-correct pattern: apply RequestCriteria to the Task from the Action, then the Task uses its injected Repository.
+Official examples may apply RequestCriteria to the Task from the Action. This repo keeps Action input-only, so the Task applies its own RequestCriteria before using the injected Repository.
 
 ```php
 class GetAllUsersAction extends Action
 {
     public function run()
     {
-        return app(GetAllUsersTask::class)->addRequestCriteria()->run();
+        return app(GetAllUsersTask::class)->run();
     }
 }
 
@@ -276,6 +279,8 @@ class GetAllUsersTask extends Task
 
     public function run()
     {
+        $this->addRequestCriteria();
+
         return $this->repository->paginate();
     }
 }
@@ -322,7 +327,7 @@ Important:
 
 ## Event/Listener best practices
 
-Use Event/Listener when adding the side effect directly to Action/Task would create coupling.
+Use Event/Listener when adding the side effect directly to a Task would create coupling.
 
 Good event names:
 
@@ -374,7 +379,7 @@ Rules:
 
 - Event should be a small data carrier, no business logic.
 - Prefer passing model ID or minimal immutable payload for queued/external side effects.
-- Listener `handle()` should call Action/Task/service if it needs business/data access logic.
+- Listener `handle()` should call a Task/service if it needs business/data access logic; do not reuse endpoint Actions.
 - Listener should be idempotent because queued listeners can retry.
 - Add tests with `Event::fake()` for dispatch and listener tests for side effects.
 - In production deploys using event discovery/cache, remember `php artisan event:cache` / `event:clear` as appropriate.
@@ -393,9 +398,9 @@ If the project uses the documentation generator:
 - Migration: table/column naming, constraints, indexes, FK delete behavior, soft delete if needed.
 - Model: `$fillable`, `$casts`, `$hidden`, relationships.
 - Request: validation, authorization, `$decode`, `$urlParameters`, query param caps.
-- Action: `sanitizeInput`, orchestration, `transactionalRun()` or explicit transaction if multi-write.
-- SubAction: only for reusable sub-use-case orchestration.
-- Task: repository calls, exceptions, no Request.
+- Action: `sanitizeInput`/server-owned fields, then exactly one main Task; no transaction or SubAction.
+- SubAction: do not introduce into new endpoint flows.
+- Task: reusable capability, child Task orchestration, Repository calls, exceptions, and transaction when writes are dependent.
 - Repository: model binding, `$fieldSearchable`, pagination.
 - Transformer: hashed ID, safe fields, includes.
 - Events/Listeners: side effects, queue, after-commit, idempotency.
@@ -480,15 +485,17 @@ Use `php artisan` and `php artisan apiato:generate:<name> --help` before relying
 | Treating docs examples as this repo's exact structure | Match nearby repo patterns after checking Apiato 11.x baseline |
 | Writing queries in Controller or Action | Put data access in Task/Repository |
 | Passing Request into Task | Pass scalar/value/data array to Task |
-| Making Task call many Tasks | Use SubAction for sub-use-case orchestration |
-| Hiding multi-write transaction in reusable Task | Use Action/`transactionalRun()` for workflow consistency |
+| Making Action call multiple Tasks or a SubAction | Move orchestration into one main Task; Action calls only that Task |
+| Opening transaction in Controller/Action | Move the consistency boundary into the main Task |
+| Sharing an Action across Containers | Share the owning Container's Task |
+| Swallowing an exception from a nested Task transaction | Rethrow/propagate so the outermost Task can roll back |
 | Copying RequestCriteria examples onto an undefined `$this->repository` | Inject Repository in Task, apply `addRequestCriteria()` before `run()` |
 | Returning raw numeric IDs | Return `getHashedKey()` and decode inputs in Request |
 | Leaving private `authorize()` as `true` | Use `$access` and `$this->check(['hasAccess'])` unless intentionally open to authenticated users |
 | Missing `max` on strings | Cap create/update strings to database column length |
 | Exposing sensitive fields in Transformer or `filter` | Keep Transformer public and safe |
 | Letting list APIs return unbounded results | Paginate or enforce safe max `limit` |
-| Dispatching external side effects before transaction commit | Dispatch after successful state change, queue with after-commit when needed |
+| Dispatching external side effects before transaction commit | Use after-commit/outbox with retry and idempotency |
 | Running Pint by habit in this repo | Use repo validators from `AGENTS.md`, especially `php-cs-fixer` |
 
 ## Red Flags
@@ -509,10 +516,11 @@ Stop and re-check docs/repo patterns if you are about to say:
 - Migration includes constraints and indexes, not just columns.
 - Request validates, authorizes, decodes, and caps inputs.
 - Action/Task/Repository responsibilities are clean.
-- Multi-write workflow transaction is explicit at Action/controller `transactionalRun()` level.
+- Action calls exactly one main Task and owns no transaction.
+- Multi-write workflow transaction is owned by a Task; nested Task exceptions propagate to the outermost boundary.
 - List APIs paginate, avoid N+1, and use indexed filters.
 - Transformer returns safe hashed response.
-- Side effects are decoupled with Event/Listener when appropriate, queued after commit if slow/external.
+- External side effects use after-commit/outbox with retry and idempotency.
 - Tests/validators run or explicit blocker documented.
 - No secrets, logs, dumps, cache, or unrelated files included.
 

@@ -12,11 +12,11 @@ Route -> Request -> Controller -> Action -> Task -> Repository/Model -> Transfor
 Thực tế repo:
 
 - `Request` giữ contract đầu vào, không giữ toàn bộ domain permission.
-- `Action` thường mỏng: sanitize/enrich input rồi gọi Task.
-- `Task` là nơi chính của use case: transaction, permission, mutation, sync relation, log, dispatch.
+- `Action` là endpoint boundary: sanitize/enrich input rồi gọi đúng một main Task.
+- `Task` là reusable business capability và nơi chính của use case: transaction, permission, mutation, sync relation, log, dispatch.
 - `Model` không chỉ là data object: có relation, cast, permission, lifecycle event, notification helper.
 - `Transformer` là response contract nhưng đôi lúc đọc `request()` và gọi domain method.
-- `Event` có 2 loại: domain event cho listener, realtime event gửi side effect ngay trong constructor.
+- `Event` là data carrier; realtime/external delivery phải chạy after-commit/outbox, không gửi ngay trong constructor.
 
 ## 3.2) Layer boundary
 
@@ -25,8 +25,8 @@ Thực tế repo:
 | Route | URI, HTTP verb, middleware, `@api` docs | business/query |
 | Request | validate, authorize access, decode URL id | ownership sâu |
 | Controller | nhận Request, gọi Action, trả response | orchestration |
-| Action | `sanitizeInput()`, gán field server-owned | query/mutate nặng |
-| Task | use case, transaction, repository, relation sync | nhận Request object |
+| Action | `sanitizeInput()`, gán field server-owned, gọi đúng một Task | nhiều Task, SubAction, Action khác, query/mutation, transaction |
+| Task | reusable use case, child Task orchestration, transaction, repository, relation sync | nhận Request object, gọi Action |
 | Repository | query surface, criteria, pagination | business rule ẩn |
 | Model | relation, cast, permission, lifecycle domain hook | gọi HTTP/request phức tạp |
 | Transformer | public JSON shape, include, permission flags | query nặng trong collection |
@@ -43,15 +43,19 @@ Request validate
 -> normalize business data
 -> create/update/delete
 -> sync pivot/files/log/history
--> dispatch side effect
+-> ghi outbox intent nếu cần
 -> commit
+-> dispatch external side effect after-commit/outbox
 -> Transformer response
 ```
 
 Rule:
 
 - Permission thật nằm ở Task + Model method.
+- Action không được dùng làm dependency xuyên Container; share Task của Container sở hữu.
 - Nếu ghi nhiều bảng, không tách rời transaction.
+- Task cha và Task con được phép mở nested transaction; inner commit không độc lập.
+- Exception cần rollback phải propagate tới outermost transaction Task, không catch-and-swallow.
 - Nếu đổi visible data, nghĩ tới realtime + notification + log/history.
 - Nếu dispatch trước commit, audit risk rollback nhưng event đã bắn.
 
@@ -105,7 +109,7 @@ Rule:
 - Public board: gửi active users trong workspace.
 - Private board: gửi active board users.
 - Hidden data: thường chỉ gửi admin/owner ids.
-- Realtime event trong repo không luôn là DTO thuần, có thể query và gửi ngay.
+- Realtime event hiện hữu có thể chưa là DTO thuần; không copy pattern query/gửi ngay. Chuẩn mới là payload tối thiểu và delivery after-commit/outbox.
 
 ## 3.7) Khi thêm feature
 

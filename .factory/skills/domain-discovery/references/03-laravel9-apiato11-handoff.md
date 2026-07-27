@@ -12,9 +12,9 @@ Mapping này là guide trách nhiệm, không phải lệnh tạo class:
 
 | Business evidence đã xác nhận | Apiato/Laravel boundary có thể dùng | Guardrail |
 |---|---|---|
-| Một user/system intent tạo outcome hoàn chỉnh | Action | Action điều phối use case; không biến một table thành một Action máy móc. |
-| Một use case con có nghĩa nghiệp vụ, tái dùng trong orchestration | SubAction | Dùng khi có business capability con; không dùng chỉ để chia file. |
-| Một bước query/mutation hoặc logic nhỏ tái dùng | Task hoặc Repository | Data access/query/mutation theo pattern repo; tránh business orchestration trong Task. |
+| Một user/system intent tạo outcome hoàn chỉnh | Action + main Task | Action chỉ map/enrich input và gọi đúng một main Task; main Task thực thi outcome. |
+| Một capability nghiệp vụ tái sử dụng | Task | Giữ trong Container sở hữu, được share xuyên Container và có thể gọi child Tasks. |
+| Một bước query/mutation tái dùng | Child Task hoặc Repository | Task không nhận Request và không gọi Action; Repository giữ data access/query surface. |
 | Input, validation và actor authorization | Request | Validation khác domain invariant; authorization phải theo actor/authority đã chốt. |
 | Business fact đã xảy ra | Domain event concept | Không đồng nhất với Laravel Event class. |
 | In-process dispatch/listener phù hợp | Laravel Event/Listener | Chỉ chọn sau khi delivery, transaction và retry semantics rõ. |
@@ -24,11 +24,11 @@ Mapping này là guide trách nhiệm, không phải lệnh tạo class:
 Luồng tham chiếu của repo:
 
 ```text
-Route -> Controller -> Request -> Action -> SubAction -> Task
+Route -> Controller -> Request -> Action -> main Task -> child Tasks
 -> Repository/Model -> Transformer
 ```
 
-Controller giữ mỏng. Không bắt buộc mọi use case có đủ mọi component.
+Controller giữ mỏng. Action gọi đúng một Task, không gọi SubAction hoặc sở hữu transaction.
 
 ## Transaction và after-commit boundary
 

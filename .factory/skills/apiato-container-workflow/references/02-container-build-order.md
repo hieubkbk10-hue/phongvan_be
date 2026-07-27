@@ -160,8 +160,8 @@ Chỉ chạy khi cả hai đầu dependency đã tồn tại.
 
 ## Phase 9: Tasks
 
-1. Liệt kê atomic operations trước.
-2. Một Task cho một job.
+1. Xác định main Task đại diện cho business capability của endpoint.
+2. Liệt kê child Tasks cần tái sử dụng, kể cả dependency xuyên Container.
 3. Không nhận Request.
 4. Dùng Repository.
 5. Chuẩn hóa exceptions.
@@ -173,21 +173,22 @@ Chỉ chạy khi cả hai đầu dependency đã tồn tại.
    - write snapshot/log/history;
    - batch query/reorder.
 7. Không để Task gọi Action.
+8. Main Task được gọi child Tasks.
+9. Task có dependent writes tự sở hữu transaction; Task chỉ đọc không cần transaction.
+10. Nested transaction được phép khi cùng connection/driver hỗ trợ savepoint.
+11. Inner commit không độc lập; exception cần rollback phải propagate tới outermost transaction Task.
+12. Deadlock retry đặt ở outermost owner; external side effect chạy after-commit/outbox.
 
-## Phase 10: Action/SubAction và transaction
+## Phase 10: Action
 
 Nếu có transaction/locking/concurrency, dùng `mysql-optimization` để chốt lock scope/order, contention, deadlock và retry policy.
 
 1. Action nhận Request.
 2. `sanitizeInput()` whitelist và server-owned fields.
-3. Dùng SubAction khi reusable orchestration.
-4. Chọn một transaction owner theo repo pattern.
-5. Lock tài nguyên nếu limit/stock/balance/primary/reorder.
-6. Core writes cùng consistency boundary.
-7. Compensate file đã upload nếu DB rollback.
-8. Commit trước external side effect.
-9. Dispatch Event/Job/Notification after commit.
-10. Rollback trước throw và không nuốt core exception.
+3. Gọi đúng một main Task.
+4. Không gọi nhiều Task, SubAction, Action khác, Repository/Model hoặc transaction.
+5. Không dùng Action làm dependency tái sử dụng xuyên Container.
+6. Transformer/response chỉ nhận kết quả sau khi main Task hoàn tất.
 
 ## Phase 11: Request
 
